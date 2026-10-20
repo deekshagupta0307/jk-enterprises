@@ -1,0 +1,268 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Note: Database URL is configured in prisma.config.ts per Prisma 7 standards
+}
+
+enum PublicationStatus {
+  DRAFT
+  DEMO
+  PUBLISHED
+  ARCHIVED
+}
+
+enum CustomerSegmentType {
+  RETAIL
+  INSTITUTIONAL
+  WHOLESALE
+}
+
+enum InquiryStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  ESTIMATE_PREPARED
+  CLOSED
+}
+
+enum SystemRole {
+  CUSTOMER
+  STAFF
+  ADMIN
+}
+
+enum CustomerType {
+  RETAIL
+  BUSINESS
+  WHOLESALE
+}
+
+enum BusinessVerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum WholesaleApprovalStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Category {
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  description String?
+  icon        String?
+  parentId    String?
+  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Category[] @relation("CategoryHierarchy")
+  products    Product[]
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([slug])
+  @@index([parentId])
+}
+
+model Brand {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  logoUrl     String?
+  description String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([slug])
+}
+
+model Product {
+  id                  String                @id @default(cuid())
+  sku                 String                @unique
+  slug                String                @unique
+  name                String
+  description         String
+  modelNumber         String?
+  brandId             String
+  brand               Brand                 @relation(fields: [brandId], references: [id], onDelete: Restrict)
+  categoryId          String
+  category            Category              @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  publicationStatus   PublicationStatus     @default(DEMO)
+  customerSegments    CustomerSegmentType[] @default([RETAIL, INSTITUTIONAL, WHOLESALE])
+  isDemo              Boolean               @default(true)
+  demoPriceINR        Decimal?              @db.Decimal(10, 2)
+  confirmedPriceINR   Decimal?              @db.Decimal(10, 2)
+  mrpINR              Decimal?              @db.Decimal(10, 2)
+  isPriceConfirmed    Boolean               @default(false)
+  warrantyInfo        String?
+  isWarrantyConfirmed Boolean               @default(false)
+  specifications      ProductSpecification[]
+  images              ProductImage[]
+  inventory           InventoryRecord?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  @@index([slug])
+  @@index([sku])
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([publicationStatus])
+  @@index([isDemo])
+}
+
+model ProductSpecification {
+  id           String   @id @default(cuid())
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  group        String?
+  key          String
+  value        String
+  isFilterable Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  @@index([productId])
+  @@index([key, value])
+  @@index([key])
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  imageUrl  String
+  altText   String
+  sortOrder Int      @default(0)
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+}
+
+model InventoryRecord {
+  id               String   @id @default(cuid())
+  productId        String   @unique
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantityOnHand   Int      @default(0)
+  quantityReserved Int      @default(0)
+  isStockConfirmed Boolean  @default(false)
+  location         String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model QuotationInquiry {
+  id               String        @id @default(cuid())
+  inquiryNumber    String        @unique
+  userId           String?
+  user             User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organizationName String
+  contactName      String
+  district         String
+  requirementType  String
+  notes            String?
+  status           InquiryStatus @default(SUBMITTED)
+  isDemo           Boolean       @default(true)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([status])
+  @@index([inquiryNumber])
+  @@index([userId])
+}
+
+model User {
+  id            String            @id @default(cuid())
+  name          String
+  email         String            @unique
+  emailVerified Boolean           @default(false)
+  image         String?
+  role          SystemRole        @default(CUSTOMER)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  profile       CustomerProfile?
+  inquiries     QuotationInquiry[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+
+  @@map("verification")
+}
+
+model CustomerProfile {
+  id                         String                     @id @default(cuid())
+  userId                     String                     @unique
+  user                       User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customerType               CustomerType               @default(RETAIL)
+  organizationName           String?
+  gstin                      String?
+  businessVerificationStatus BusinessVerificationStatus @default(UNVERIFIED)
+  businessVerificationNotes  String?
+  businessVerifiedAt         DateTime?
+  wholesaleApprovalStatus    WholesaleApprovalStatus    @default(NONE)
+  wholesaleApprovalNotes     String?
+  wholesaleApprovedAt        DateTime?
+  phone                      String?
+  district                   String?
+  state                      String                     @default("Rajasthan")
+  createdAt                  DateTime                   @default(now())
+  updatedAt                  DateTime                   @updatedAt
+
+  @@index([userId])
+  @@index([customerType])
+  @@index([businessVerificationStatus])
+  @@index([wholesaleApprovalStatus])
+  @@map("customer_profile")
+}
