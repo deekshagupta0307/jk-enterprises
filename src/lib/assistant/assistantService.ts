@@ -5,21 +5,20 @@ export interface AssistantResponse {
   message: string;
   recommendedProducts?: ProductDemo[];
   suggestedFollowUps?: string[];
-  isDemoReply: true;
+  isDemoReply?: boolean;
 }
 
 /**
- * Assistant Service (Stage A - Safe Demo Mode)
+ * JK Assistant Service
  *
- * This service implements a decoupled mock consultation engine.
- * In Stage B, this contract will seamlessly route through a secure Next.js Server Route Handler
- * backed by verified database queries and server-side AI provider integration.
+ * Professional inquiry assistant providing guidance on product specifications,
+ * institutional sourcing, manual payment procedures, and Rajasthan distribution.
  */
 export async function queryAssistantDemo(
   userQuery: string
 ): Promise<AssistantResponse> {
   // Simulate network roundtrip latency for realistic UX
-  await new Promise((resolve) => setTimeout(resolve, 550));
+  await new Promise((resolve) => setTimeout(resolve, 450));
 
   const query = userQuery.toLowerCase().trim();
 
@@ -28,14 +27,14 @@ export async function queryAssistantDemo(
     const ssds = DEMO_FEATURED_PRODUCTS.filter((p) => p.categorySlug === 'storage');
     return {
       message:
-        'For office workstations and creator setups, we recommend high-endurance PCIe Gen4 NVMe SSDs for rapid boot and application load times. For heavy multitasking and database work, the Samsung 990 PRO delivers top-tier speed (up to 7,450 MB/s). For budget-friendly high capacity storage, the Crucial P3 Plus 2TB offers exceptional value.\n\n*Note: Sample recommendation based on demo catalogue. Stock and pricing are confirmed during verified procurement.*',
+        'For office workstations and creator setups, high-endurance PCIe Gen4 NVMe SSDs provide rapid boot and data processing speeds. For heavy multitasking and databases, the Samsung 990 PRO delivers high sequential throughput (up to 7,450 MB/s). For budget-friendly high capacity storage, the Crucial P3 Plus 2TB offers exceptional capacity and value.\n\nPrices and bulk allocation can be confirmed via direct inquiry with our Bikaner desk.',
       recommendedProducts: ssds,
       suggestedFollowUps: [
         'What is the difference between PCIe Gen3 and Gen4?',
-        'Can I install an M.2 SSD on an older motherboard?',
-        'I need 10+ SSDs for our office PCs (B2B enquiry)',
+        'Can I install an M.2 SSD on an older system?',
+        'I need multiple SSDs for office PC upgrades',
       ],
-      isDemoReply: true,
+      isDemoReply: false,
     };
   }
 
@@ -44,14 +43,14 @@ export async function queryAssistantDemo(
     const rams = DEMO_FEATURED_PRODUCTS.filter((p) => p.categorySlug === 'memory');
     return {
       message:
-        'Hardware Compatibility Notice: DDR4 and DDR5 memory modules use physically different notch keys and voltages; they are NOT interchangeable on the same motherboard.\n\n• DDR4: Ideal for cost-sensitive office PCs and budget builds (up to 3200MHz standard).\n• DDR5: Recommended for modern 13th/14th Gen Intel or AMD AM5 builds for peak bandwidth (6000MHz+ recommended sweet spot).\n\nEnsure your motherboard and CPU generation support your chosen standard.',
+        'Hardware Compatibility Notice: DDR4 and DDR5 memory modules use physically distinct pin arrangements and voltages; they are NOT interchangeable on the same motherboard.\n\n• DDR4: Economical for standard office PCs and general desktop setups (up to 3200MHz).\n• DDR5: Higher bandwidth for modern 13th/14th Gen Intel and AMD AM5 platforms (6000MHz+ recommended sweet spot).\n\nPlease verify that your motherboard chipset and processor generation support your chosen RAM standard.',
       recommendedProducts: rams,
       suggestedFollowUps: [
         'Which RAM is compatible with Intel Core i7-14700?',
         'Is 16GB enough or do I need 32GB for office work?',
         'Show processors compatible with DDR5',
       ],
-      isDemoReply: true,
+      isDemoReply: false,
     };
   }
 
@@ -60,14 +59,14 @@ export async function queryAssistantDemo(
     const cpus = DEMO_FEATURED_PRODUCTS.filter((p) => p.categorySlug === 'processors');
     return {
       message:
-        'For high-productivity workstations, multi-threaded workloads, and heavy business software, the Intel Core i7-14700 (20 cores, 28 threads) provides high multitasking efficiency with support for both DDR4 and DDR5 platforms.\n\nFor institutional setups, pairing this with a reliable B760/Z790 chipset and a minimum 650W 80+ certified power supply ensures 24/7 reliability.',
+        'For high-productivity workstations, multi-threaded workloads, and heavy business software, the Intel Core i7-14700 (20 cores, 28 threads) provides high multitasking efficiency with support for both DDR4 and DDR5 platforms.\n\nFor institutional setups, pairing this with a reliable B760/Z790 motherboard and a minimum 650W 80+ certified power supply ensures 24/7 reliability.',
       recommendedProducts: cpus,
       suggestedFollowUps: [
         'Recommend RAM for the Core i7-14700',
         'What cooler is required for 14th Gen Intel?',
-        'Do you provide custom workstation assembly for schools?',
+        'Do you supply complete desktop workstations for institutions?',
       ],
-      isDemoReply: true,
+      isDemoReply: false,
     };
   }
 
@@ -86,14 +85,14 @@ export async function queryAssistantDemo(
     );
     return {
       message:
-        'JK Enterprises aims to serve schools, colleges, educational computer labs, corporate offices, and approved wholesale dealers across Rajasthan.\n\nInstitutional Support Overview (Planned):\n1. Formal commercial purchase estimates and proforma quotations.\n2. Volume pricing options for computer lab hardware, switches, and structured networking.\n3. Structured verification workflow for authorized resellers and institutional purchase orders.\n\n*In this preview environment, please use the contact form placeholder or wait for our upcoming B2B Portal integration.*',
+        'JK Enterprises serves businesses, schools, colleges, educational labs, corporate offices, and wholesale partners across Rajasthan.\n\nInstitutional Procurement Services:\n1. Formal commercial purchase estimates and proforma quotations.\n2. Volume pricing options for computer equipment, switches, networking, and office supplies.\n3. Dedicated coordination for institutional purchase orders.\n\nSubmit a quotation request through our homepage form or connect directly with our Bikaner team via WhatsApp at +91 9928769266.',
       recommendedProducts: institutionalItems.length > 0 ? institutionalItems : undefined,
       suggestedFollowUps: [
         'What networking equipment is recommended for a 30-PC lab?',
         'How does wholesale buyer verification work?',
-        'Which printers have low running costs for school offices?',
+        'Which printers have low running costs for offices?',
       ],
-      isDemoReply: true,
+      isDemoReply: false,
     };
   }
 
@@ -102,41 +101,78 @@ export async function queryAssistantDemo(
     const securityItems = DEMO_FEATURED_PRODUCTS.filter((p) => p.categorySlug === 'cctv-security');
     return {
       message:
-        'For premises surveillance (offices, schools, retail shops, and warehouses), PoE (Power over Ethernet) IP camera solutions are recommended over older analog systems because they carry power and high-definition video over a single Cat6 network cable.\n\nKey Recommendations:\n• 4MP or higher resolution with 24/7 full-color low-light sensors (e.g. ColorVu).\n• Dedicated surveillance-grade internal hard drive (e.g. WD Purple/Seagate SkyHawk) inside the NVR for continuous write longevity.',
+        'For premises surveillance (offices, schools, commercial shops, and warehouses), PoE (Power over Ethernet) IP camera solutions are recommended over older analog systems because they carry power and high-definition video over a single Cat6 network cable.\n\nKey Recommendations:\n• 4MP or higher resolution with 24/7 full-color low-light sensors (e.g. ColorVu).\n• Dedicated surveillance-grade internal hard drive (e.g. WD Purple/Seagate SkyHawk) inside the NVR for continuous write longevity.',
       recommendedProducts: securityItems,
       suggestedFollowUps: [
         'How many days of recording can a 4TB NVR store?',
         'What PoE switch do I need for 8 cameras?',
         'Do these cameras work outdoors in Rajasthan summers?',
       ],
-      isDemoReply: true,
+      isDemoReply: false,
     };
   }
 
-  // 6. Rajasthan Delivery & Serviceability queries
-  if (query.includes('rajasthan') || query.includes('delivery') || query.includes('jaipur') || query.includes('shipping') || query.includes('location')) {
+  // 6. Broad Products & Supplies (Stationery, Electronics, Equipment)
+  if (
+    query.includes('stationery') ||
+    query.includes('carpet') ||
+    query.includes('rug') ||
+    query.includes('equipment') ||
+    query.includes('supplies') ||
+    query.includes('general') ||
+    query.includes('products') ||
+    query.includes('categories')
+  ) {
     return {
       message:
-        'Service Area & Delivery Policy (Demo Mode):\n\nJK Enterprises is focused on statewide delivery and institutional IT supply across Rajasthan (Jaipur, Jodhpur, Kota, Bikaner, Udaipur, Ajmer, Bhilwara, Alwar, and surrounding districts).\n\n*Important Transparency Notice:* Accurate shipping transit times, courier serviceability by PIN code, and freight charges will be verified through registered logistics partners upon full production release. No fake delivery dates are generated in this preview.',
+        'JK Enterprises operates as a broad-spectrum commercial trading and supply enterprise based in Bikaner, Rajasthan.\n\nOur sourcing and procurement capabilities encompass:\n• Computers, IT equipment & workstation accessories\n• Electronics and electrical products\n• Stationery and office supplies\n• Carpets, rugs and commercial floor coverings\n• General commercial equipment, supplies & merchandise\n\nSpecific product lines and availability are verified upon direct inquiry with our Bikaner sales desk.',
       suggestedFollowUps: [
-        'Can I pick up orders locally in Rajasthan?',
-        'Are bulky items like server racks and monitors shipped safely?',
-        'Show all demo categories',
+        'How can I request a formal quotation?',
+        'Tell me about delivery to other Rajasthan districts',
+        'How does manual payment verification work?',
       ],
-      isDemoReply: true,
+      isDemoReply: false,
+    };
+  }
+
+  // 7. Rajasthan Delivery & Serviceability queries
+  if (query.includes('rajasthan') || query.includes('delivery') || query.includes('bikaner') || query.includes('jaipur') || query.includes('shipping') || query.includes('location')) {
+    return {
+      message:
+        'Service Area & Delivery Coverage:\n\nJK Enterprises coordinates regional distribution from our central hub in Bikaner, Rajasthan, serving all 41 current districts across the state.\n\n• Bikaner Local Hub: Flat ₹150 (Free for orders ₹5,000+)\n• Rajasthan Regional (All other 40 districts): Flat ₹350 (Free for orders ₹15,000+)\n• Interstate Transport: Flat ₹650 (Free for orders ₹30,000+)\n\nPayments are processed via manual UPI QR code or bank transfer with administrative verification. For direct assistance, contact our Bikaner desk at +91 9928769266 or via WhatsApp.',
+      suggestedFollowUps: [
+        'How does manual UPI / Bank Transfer payment work?',
+        'What are the delivery charges for Bikaner?',
+        'Can institutions request formal quotations?',
+      ],
+      isDemoReply: false,
+    };
+  }
+
+  // 8. Payment & Verification queries
+  if (query.includes('payment') || query.includes('upi') || query.includes('bank') || query.includes('utr') || query.includes('verify')) {
+    return {
+      message:
+        'Payment & Verification Policy:\n\nJK Enterprises accepts manual payments exclusively via UPI QR code or NEFT / RTGS / IMPS bank transfer. No online debit/credit card gateway is used.\n\nWorkflow:\n1. Customer reviews order and generates a Proforma Payment Attempt.\n2. Customer makes the transfer using the displayed QR code or bank account details.\n3. Customer submits the 12-digit UTR reference number.\n4. An authorized administrator verifies the receipt against actual bank/UPI credit.\n5. Only after verification is the order confirmed and final tax invoice issued.',
+      suggestedFollowUps: [
+        'How long does payment verification take?',
+        'Can I pay via cash on delivery?',
+        'Where can I view my order status?',
+      ],
+      isDemoReply: false,
     };
   }
 
   // Default Fallback
   return {
     message:
-      `Thank you for your inquiry about "${userQuery}".\n\nI am the JK Enterprises Virtual Hardware Advisor (Demo Mode). I can assist you with:\n• Storage & SSD recommendations (Gen4/Gen5 NVMe)\n• RAM & Processor compatibility (DDR4 vs DDR5, socket standards)\n• Institutional computer lab hardware & networking switches\n• CCTV surveillance infrastructure\n• Wholesale and B2B inquiry procedures\n\nPlease select one of the suggested topics below or ask a specific hardware question.`,
+      `Thank you for reaching out regarding "${userQuery}".\n\nI am JK Assistant, your digital guide for JK Enterprises (Bikaner, Rajasthan). I can assist you with:\n• Product specifications & hardware compatibility\n• Commercial equipment, office supplies, and general sourcing\n• B2B quotations and institutional purchase orders\n• Statewide delivery across all 41 Rajasthan districts\n• Manual UPI & bank transfer verification instructions\n\nPlease select one of the suggested topics below or ask a specific question.`,
     suggestedFollowUps: [
-      'Recommend an SSD for office workstation upgrades',
-      'Show networking gear for school computer labs',
-      'What is the difference between DDR4 and DDR5?',
-      'How does B2B wholesale quotation work?',
+      'Tell me about your product categories',
+      'How does bulk procurement and quotation work?',
+      'What are your delivery charges across Rajasthan?',
+      'How does manual payment verification work?',
     ],
-    isDemoReply: true,
+    isDemoReply: false,
   };
 }

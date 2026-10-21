@@ -8,8 +8,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
-  --font-mono: var(--font-geist-mono), monospace;
+  --font-sans: Arial, Helvetica, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
 html {
@@ -20,9 +20,148 @@ html {
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans);
+  font-family: Arial, Helvetica, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Moving text animation for Jai Shree Shyam greeting ticker (noticeably slower, dignified pace) */
+@keyframes ticker-slide {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.ticker-track {
+  display: flex;
+  width: max-content;
+  white-space: nowrap;
+  will-change: transform;
+  animation: ticker-slide 55s linear infinite;
+}
+
+.ticker-track:hover {
+  animation-play-state: paused;
+}
+
+/* Premium Interactive Button Treatment */
+.btn-premium-interactive {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, filter 0.18s ease;
+}
+
+.btn-premium-interactive:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.015);
+}
+
+.btn-premium-interactive:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+.btn-premium-interactive::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 20%, rgba(255, 255, 255, 0.14) 50%, transparent 80%);
+  transform: translateX(-100%);
+  transition: transform 0.55s ease;
+  pointer-events: none;
+}
+
+.btn-premium-interactive:hover:not(:disabled)::before {
+  transform: translateX(100%);
+}
+
+/* Premium Interactive Card Treatment */
+.card-premium-interactive {
+  position: relative;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.card-premium-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px -5px rgba(15, 23, 42, 0.06), 0 2px 6px -2px rgba(15, 23, 42, 0.02);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+/* Chatbot Launcher: Refined Orbital Ring & Gentle Tilt */
+@keyframes orbital-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes gentle-sway {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-2px) rotate(1.2deg);
+  }
+}
+
+@keyframes scan-highlight {
+  0%, 100% {
+    transform: translateX(-6px);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateX(6px);
+    opacity: 1;
+  }
+}
+
+.chat-orbital-ring {
+  position: absolute;
+  inset: -5px;
+  border-radius: 9999px;
+  border: 1.5px dashed rgba(96, 165, 250, 0.5);
+  animation: orbital-spin 20s linear infinite;
+  pointer-events: none;
+}
+
+.chat-launcher-btn {
+  animation: gentle-sway 4.5s ease-in-out infinite;
+}
+
+.chat-launcher-btn:hover {
+  animation-play-state: paused;
+}
+
+.chat-eye-scanner {
+  animation: scan-highlight 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track {
+    animation: none;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .btn-premium-interactive,
+  .btn-premium-interactive:hover,
+  .btn-premium-interactive:active,
+  .card-premium-interactive,
+  .card-premium-interactive:hover,
+  .chat-launcher-btn,
+  .chat-orbital-ring,
+  .chat-eye-scanner {
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .btn-premium-interactive::before {
+    display: none !important;
+  }
 }
 
 /* Custom scrollbar */

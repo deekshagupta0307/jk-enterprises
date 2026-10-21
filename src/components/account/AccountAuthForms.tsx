@@ -6,6 +6,12 @@ import { registerCustomerAction, loginCustomerAction } from '@/lib/auth/accountA
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
+import { RAJASTHAN_DISTRICTS } from '@/lib/config/businessConfig';
+import {
+  validateIndianMobile,
+  validateWhatsAppNumber,
+  sanitizeNational10DigitInput,
+} from '@/lib/validation/phoneValidation';
 
 export interface AccountAuthFormsProps {
   isDatabaseConnected: boolean;
@@ -32,8 +38,12 @@ export const AccountAuthForms: React.FC<AccountAuthFormsProps> = ({
   const [regCustomerType, setRegCustomerType] = useState<'RETAIL' | 'BUSINESS' | 'WHOLESALE'>('RETAIL');
   const [regOrgName, setRegOrgName] = useState('');
   const [regGstin, setRegGstin] = useState('');
-  const [regDistrict, setRegDistrict] = useState('');
+  const [regDistrict, setRegDistrict] = useState('Bikaner');
   const [regPhone, setRegPhone] = useState('');
+  const [regPhoneError, setRegPhoneError] = useState<string | null>(null);
+  const [regWhatsapp, setRegWhatsapp] = useState('');
+  const [regWhatsappError, setRegWhatsappError] = useState<string | null>(null);
+  const [regSameAsPhone, setRegSameAsPhone] = useState(false);
   const [regLoading, setRegLoading] = useState(false);
   const [regError, setRegError] = useState<string | null>(null);
   const [regSuccess, setRegSuccess] = useState<string | null>(null);
@@ -65,6 +75,30 @@ export const AccountAuthForms: React.FC<AccountAuthFormsProps> = ({
     e.preventDefault();
     setRegError(null);
     setRegSuccess(null);
+    setRegPhoneError(null);
+    setRegWhatsappError(null);
+
+    // Client-side phone validation if entered
+    if (regPhone.trim()) {
+      const pVal = validateIndianMobile(regPhone, true);
+      if (!pVal.isValid) {
+        setRegPhoneError(pVal.error || 'Please enter a valid 10-digit Indian mobile number.');
+        setRegError(pVal.error || 'Please correct your phone number.');
+        return;
+      }
+    }
+
+    // Client-side WhatsApp validation if entered
+    const effectiveWhatsapp = regSameAsPhone ? regPhone : regWhatsapp;
+    if (effectiveWhatsapp.trim()) {
+      const wVal = validateWhatsAppNumber(effectiveWhatsapp, true);
+      if (!wVal.isValid) {
+        setRegWhatsappError(wVal.error || 'Please enter a valid WhatsApp number.');
+        setRegError(wVal.error || 'Please correct your WhatsApp number.');
+        return;
+      }
+    }
+
     setRegLoading(true);
 
     try {
@@ -77,6 +111,7 @@ export const AccountAuthForms: React.FC<AccountAuthFormsProps> = ({
         gstin: regGstin,
         district: regDistrict,
         phone: regPhone,
+        whatsappPhone: effectiveWhatsapp,
       });
 
       if (!res.success) {
@@ -95,32 +130,24 @@ export const AccountAuthForms: React.FC<AccountAuthFormsProps> = ({
 
   return (
     <div className="max-w-xl mx-auto w-full bg-white rounded-3xl border border-slate-200/90 shadow-xl overflow-hidden">
-      {/* Top Banner: Database Connection State Notice */}
-      <div
-        className={`p-4 border-b text-xs ${
-          isDatabaseConnected
-            ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
-            : 'bg-amber-50 text-amber-900 border-amber-200'
-        }`}
-      >
-        <div className="flex items-start gap-2.5">
-          <span className="text-base" aria-hidden="true">
-            {isDatabaseConnected ? '🔒' : 'ℹ️'}
-          </span>
-          <div className="flex-1 space-y-0.5">
-            <p className="font-bold">
-              {isDatabaseConnected
-                ? 'Production Auth Engine Ready (PostgreSQL Connected)'
-                : 'Demo Sandbox Notice (PostgreSQL Offline)'}
-            </p>
-            <p className="text-[11px] leading-relaxed opacity-90">
-              {isDatabaseConnected
-                ? 'Accounts and encrypted sessions are stored securely with Prisma ORM.'
-                : 'Customer registration, password hashing, and session validation require a live PostgreSQL database connection. In this preview sandbox, account submissions are safely validated against server policies without pretending unpersisted data is saved.'}
-            </p>
+      {/* Top Banner: Account Portal Availability Notice */}
+      {!isDatabaseConnected && (
+        <div className="p-4 border-b text-xs bg-slate-50 text-slate-800 border-slate-200">
+          <div className="flex items-start gap-2.5">
+            <span className="text-base text-blue-600" aria-hidden="true">
+              ℹ️
+            </span>
+            <div className="flex-1 space-y-0.5">
+              <p className="font-semibold text-slate-900">
+                Portal Service Notice
+              </p>
+              <p className="text-[11px] text-slate-600 leading-relaxed">
+                Online customer registration and sign-in are currently paused for scheduled system maintenance. For immediate commercial procurement, proforma quotations, or assistance, please reach our Bikaner sales desk at +91 9928769266 or via WhatsApp.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Tabs */}
       <div className="flex border-b border-slate-200 bg-slate-50/70 p-1.5" role="tablist">
@@ -396,29 +423,138 @@ export const AccountAuthForms: React.FC<AccountAuthFormsProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        District (Rajasthan)
+                      <label htmlFor="reg-district" className="block text-xs font-semibold text-slate-700 mb-1">
+                        District (Rajasthan) *
                       </label>
-                      <Input
-                        type="text"
-                        placeholder="e.g. Jaipur, Kota, Jodhpur"
+                      <select
+                        id="reg-district"
                         value={regDistrict}
                         onChange={(e) => setRegDistrict(e.target.value)}
                         disabled={regLoading}
-                      />
+                        className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      >
+                        {RAJASTHAN_DISTRICTS.map((dist) => (
+                          <option key={dist} value={dist}>
+                            {dist}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
                         Contact Phone (Optional)
                       </label>
-                      <Input
-                        type="tel"
-                        placeholder="+91 98765 43210"
-                        value={regPhone}
-                        onChange={(e) => setRegPhone(e.target.value)}
-                        disabled={regLoading}
-                      />
+                      <div className={`flex rounded-xl shadow-xs overflow-hidden border bg-white transition-all ${
+                        regPhoneError ? 'border-rose-400 focus-within:ring-2 focus-within:ring-rose-500' : 'border-slate-300 focus-within:ring-2 focus-within:ring-blue-600 focus-within:border-transparent'
+                      }`}>
+                        <span className="inline-flex items-center px-3 bg-slate-100 text-slate-600 text-xs font-medium border-r border-slate-300 select-none">
+                          +91
+                        </span>
+                        <input
+                          type="tel"
+                          inputMode="numeric"
+                          maxLength={10}
+                          placeholder="9876543210"
+                          value={regPhone}
+                          onChange={(e) => {
+                            const cleaned = sanitizeNational10DigitInput(e.target.value);
+                            setRegPhone(cleaned);
+                            if (regSameAsPhone) {
+                              setRegWhatsapp(cleaned);
+                            }
+                            if (regPhoneError) {
+                              const check = validateIndianMobile(cleaned, true);
+                              if (check.isValid) setRegPhoneError(null);
+                            }
+                          }}
+                          onBlur={() => {
+                            if (regPhone.trim()) {
+                              const check = validateIndianMobile(regPhone, true);
+                              if (!check.isValid) {
+                                setRegPhoneError(check.error || 'Invalid 10-digit mobile number');
+                              } else {
+                                setRegPhoneError(null);
+                              }
+                            }
+                          }}
+                          disabled={regLoading}
+                          className="flex-1 w-full px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden disabled:bg-slate-50"
+                          aria-label="Contact Phone (10 digits)"
+                        />
+                      </div>
+                      {regPhoneError && (
+                        <p className="text-[10px] text-rose-600 mt-1">{regPhoneError}</p>
+                      )}
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-xs font-semibold text-slate-700">
+                          WhatsApp Mobile Number (Optional)
+                        </label>
+                        {regPhone.length === 10 && (
+                          <label className="flex items-center gap-1.5 text-[11px] text-blue-700 font-medium cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={regSameAsPhone}
+                              onChange={(e) => {
+                                setRegSameAsPhone(e.target.checked);
+                                if (e.target.checked) {
+                                  setRegWhatsapp(regPhone);
+                                  setRegWhatsappError(null);
+                                }
+                              }}
+                              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span>Same as primary phone</span>
+                          </label>
+                        )}
+                      </div>
+                      <div className={`flex rounded-xl shadow-xs overflow-hidden border bg-white transition-all ${
+                        regSameAsPhone ? 'bg-slate-50 opacity-80' : ''
+                      } ${
+                        regWhatsappError ? 'border-rose-400 focus-within:ring-2 focus-within:ring-rose-500' : 'border-slate-300 focus-within:ring-2 focus-within:ring-blue-600 focus-within:border-transparent'
+                      }`}>
+                        <span className="inline-flex items-center px-3 bg-slate-100 text-slate-600 text-xs font-medium border-r border-slate-300 select-none">
+                          +91
+                        </span>
+                        <input
+                          type="tel"
+                          inputMode="numeric"
+                          maxLength={10}
+                          placeholder="10-digit WhatsApp number"
+                          value={regSameAsPhone ? regPhone : regWhatsapp}
+                          disabled={regLoading || regSameAsPhone}
+                          onChange={(e) => {
+                            const cleaned = sanitizeNational10DigitInput(e.target.value);
+                            setRegWhatsapp(cleaned);
+                            if (regSameAsPhone && cleaned !== regPhone) {
+                              setRegSameAsPhone(false);
+                            }
+                            if (regWhatsappError) {
+                              const check = validateWhatsAppNumber(cleaned, true);
+                              if (check.isValid) setRegWhatsappError(null);
+                            }
+                          }}
+                          onBlur={() => {
+                            const effective = regSameAsPhone ? regPhone : regWhatsapp;
+                            if (effective.trim()) {
+                              const check = validateWhatsAppNumber(effective, true);
+                              if (!check.isValid) {
+                                setRegWhatsappError(check.error || 'Invalid WhatsApp number');
+                              } else {
+                                setRegWhatsappError(null);
+                              }
+                            }
+                          }}
+                          className="flex-1 w-full px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden disabled:bg-slate-50 disabled:text-slate-500"
+                          aria-label="WhatsApp Number (10 digits)"
+                        />
+                      </div>
+                      {regWhatsappError && (
+                        <p className="text-[10px] text-rose-600 mt-1">{regWhatsappError}</p>
+                      )}
                     </div>
                   </div>
                 </div>

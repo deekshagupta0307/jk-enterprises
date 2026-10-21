@@ -4,6 +4,7 @@ import React, { useEffect, useCallback } from 'react';
 import { ProductDemo } from '@/types';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { useCart } from '@/context/CartContext';
 
 export interface ProductQuickViewModalProps {
   product: ProductDemo | null;
@@ -11,6 +12,7 @@ export interface ProductQuickViewModalProps {
 }
 
 export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({ product, onClose }) => {
+  const { addItem } = useCart();
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -48,8 +50,8 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({ pr
         <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-100">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <Badge variant="demo" size="sm">
-                Demo Preview Specs
+              <Badge variant="primary" size="sm">
+                Specifications
               </Badge>
               <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 {product.brand}
@@ -69,10 +71,11 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({ pr
           </button>
         </div>
 
-        {/* Demo Specs Table */}
+        {/* Specs Table */}
         <div className="py-4 space-y-4">
-          <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 leading-relaxed">
-            <strong>Prototype Disclaimer:</strong> Technical specifications are illustrative samples representing real hardware classes. Actual SKU availability and distribution pricing will be confirmed during formal procurement.
+          <div className="p-3 bg-blue-50/80 rounded-xl border border-blue-200/80 text-xs text-blue-900 leading-relaxed flex items-center gap-2.5">
+            <span className="text-base" aria-hidden="true">🛡️</span>
+            <span>All hardware units are brand new, genuine components backed by official manufacturer warranty across authorized service centers.</span>
           </div>
 
           <div>
@@ -132,11 +135,19 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({ pr
             size="md"
             className="flex-1"
             onClick={() => {
-              alert(`Demo Action: "${product.name}" acknowledged. In production, this item will be added to your formal quotation request.`);
+              addItem({
+                id: product.id,
+                name: product.name,
+                brand: product.brand,
+                category: product.category,
+                slug: product.categorySlug,
+                priceINR: product.demoPriceINR,
+                mrpINR: product.mrpINR,
+              }, 1);
               onClose();
             }}
           >
-            Add to Demo Quote
+            Add to Cart +
           </Button>
         </div>
       </div>

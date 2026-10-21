@@ -7,6 +7,7 @@ import { logoutCustomerAction, requestWholesaleApprovalAction } from '@/lib/auth
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { RAJASTHAN_DISTRICTS } from '@/lib/config/businessConfig';
 
 export interface AccountDashboardProps {
   session: AuthenticatedUserSession;
@@ -20,7 +21,7 @@ export const AccountDashboard: React.FC<AccountDashboardProps> = ({ session }) =
   const [showWholesaleModal, setShowWholesaleModal] = useState(false);
   const [wsOrgName, setWsOrgName] = useState(session.profile?.organizationName || '');
   const [wsGstin, setWsGstin] = useState(session.profile?.gstin || '');
-  const [wsDistrict, setWsDistrict] = useState(session.profile?.district || '');
+  const [wsDistrict, setWsDistrict] = useState(session.profile?.district || 'Bikaner');
   const [wsNotes, setWsNotes] = useState('');
   const [wsLoading, setWsLoading] = useState(false);
   const [wsError, setWsError] = useState<string | null>(null);
@@ -317,16 +318,22 @@ export const AccountDashboard: React.FC<AccountDashboardProps> = ({ session }) =
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    District *
+                  <label htmlFor="ws-district" className="block text-xs font-semibold text-slate-700 mb-1">
+                    District (Rajasthan) *
                   </label>
-                  <Input
-                    type="text"
+                  <select
+                    id="ws-district"
                     required
                     value={wsDistrict}
                     onChange={(e) => setWsDistrict(e.target.value)}
-                    placeholder="e.g. Jaipur"
-                  />
+                    className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  >
+                    {RAJASTHAN_DISTRICTS.map((dist) => (
+                      <option key={dist} value={dist}>
+                        {dist}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

@@ -5,6 +5,7 @@ import { CatalogueProductView } from '@/lib/catalogue/catalogueService';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ProductDemo } from '@/types';
+import { useCart } from '@/context/CartContext';
 
 export interface CatalogueProductCardProps {
   product: CatalogueProductView;
@@ -16,10 +17,25 @@ export const CatalogueProductCard: React.FC<CatalogueProductCardProps> = ({
   onQuickView,
 }) => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const { addItem } = useCart();
 
-  const handleDemoAction = () => {
-    setToastMessage(`Demo Notice: Added "${product.name.slice(0, 24)}..." to demo quotation.`);
-    setTimeout(() => setToastMessage(null), 3500);
+  const handleAddToCart = () => {
+    addItem(
+      {
+        id: product.id,
+        name: product.name,
+        brand: product.brandName,
+        category: product.categoryName,
+        slug: product.slug,
+        priceINR: product.demoPriceINR,
+        mrpINR: product.mrpINR,
+      },
+      1
+    );
+    setToastMessage(`Added "${product.name}" to cart`);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 2500);
   };
 
   // Adapt to ProductDemo interface for QuickView modal
@@ -65,7 +81,7 @@ export const CatalogueProductCard: React.FC<CatalogueProductCardProps> = ({
   };
 
   return (
-    <div className="group relative bg-white rounded-2xl border border-slate-200/90 hover:border-blue-400 hover:shadow-md transition-all duration-200 flex flex-col justify-between overflow-hidden">
+    <div className="group relative bg-white rounded-2xl border border-slate-200/90 card-premium-interactive flex flex-col justify-between overflow-hidden">
       {/* Toast Alert */}
       {toastMessage && (
         <div
@@ -82,8 +98,8 @@ export const CatalogueProductCard: React.FC<CatalogueProductCardProps> = ({
 
       {/* Top Badges */}
       <div className="p-4 pb-0 flex items-start justify-between gap-2">
-        <Badge variant="demo" size="sm">
-          Demo SKU
+        <Badge variant="default" size="sm">
+          Genuine Part
         </Badge>
         <span className="text-[10px] font-mono text-slate-400 font-semibold bg-slate-100 px-1.5 py-0.5 rounded">
           {product.sku}
@@ -144,14 +160,14 @@ export const CatalogueProductCard: React.FC<CatalogueProductCardProps> = ({
             <span className="text-[11px] text-slate-400 line-through">
               ₹{product.mrpINR.toLocaleString('en-IN')}
             </span>
-            <span className="text-[9px] text-amber-800 bg-amber-50 px-1 py-0.2 rounded border border-amber-200 font-semibold">
-              Demo
+            <span className="text-[9px] text-emerald-800 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-200 font-semibold">
+              Incl. GST
             </span>
           </div>
 
           <div className="mt-1 flex items-center justify-between text-[10px] text-slate-500">
             <span>
-              Sample Qty: <strong className="text-slate-700">{product.availableStock}</strong> (Demo)
+              Status: <strong className="text-emerald-700">{product.availableStock > 0 ? 'In Stock' : 'Available on Order'}</strong>
             </span>
             <span className="truncate max-w-[120px]">{product.warrantyInfo}</span>
           </div>
@@ -170,10 +186,10 @@ export const CatalogueProductCard: React.FC<CatalogueProductCardProps> = ({
           <Button
             variant="primary"
             size="sm"
-            onClick={handleDemoAction}
+            onClick={handleAddToCart}
             className="text-[11px] py-1.5 font-semibold"
           >
-            Demo Quote +
+            Add to Cart +
           </Button>
         </div>
       </div>

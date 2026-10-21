@@ -80,6 +80,7 @@ export async function requireCustomerType(
 
 export type PermittedSupportOperation =
   | 'INQUIRY_SUPPORT'
+  | 'ORDER_ASSISTANCE'
   | 'PROFORMA_ASSISTANCE'
   | 'TAX_VERIFICATION';
 
@@ -123,6 +124,7 @@ export function verifySupportAccess(
   if (session.user.role === SystemRole.STAFF) {
     const permittedOperations: PermittedSupportOperation[] = [
       'INQUIRY_SUPPORT',
+      'ORDER_ASSISTANCE',
       'PROFORMA_ASSISTANCE',
       'TAX_VERIFICATION',
     ];

@@ -191,6 +191,7 @@ model User {
   accounts      Account[]
   profile       CustomerProfile?
   inquiries     QuotationInquiry[]
+  orders        Order[]
 
   @@map("user")
 }
@@ -255,6 +256,7 @@ model CustomerProfile {
   wholesaleApprovalNotes     String?
   wholesaleApprovedAt        DateTime?
   phone                      String?
+  whatsappPhone              String?
   district                   String?
   state                      String                     @default("Rajasthan")
   createdAt                  DateTime                   @default(now())
@@ -266,3 +268,108 @@ model CustomerProfile {
   @@index([wholesaleApprovalStatus])
   @@map("customer_profile")
 }
+
+// -----------------------------------------------------------------------------
+// Day 4: Orders & Invoicing (Manual UPI QR & Bank Transfer)
+// -----------------------------------------------------------------------------
+
+enum OrderStatus {
+  AWAITING_PAYMENT
+  PENDING_PAYMENT
+  PAYMENT_UNDER_VERIFICATION
+  PAYMENT_REJECTED
+  CONFIRMED
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  MANUAL_UPI_QR
+  MANUAL_BANK_TRANSFER
+}
+
+enum InvoiceType {
+  PROFORMA_INVOICE
+  TAX_INVOICE
+}
+
+model Order {
+  id                   String        @id @default(cuid())
+  orderNumber          String        @unique // Payment attempt reference (e.g. JK-PAY-...) or confirmed order number (JK-ORD-...)
+  confirmedOrderNumber String?       @unique // Assigned only upon administrative verification
+  userId               String?
+  user                 User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  customerName         String
+  customerEmail        String
+  customerPhone        String
+  customerWhatsapp     String?
+  organizationName     String?
+  gstin                String?
+  shippingAddressLine1 String
+  shippingAddressLine2 String?
+  district             String
+  pinCode              String
+  state                String        @default("Rajasthan")
+  paymentMethod        PaymentMethod @default(MANUAL_UPI_QR)
+  paymentStatus        OrderStatus   @default(AWAITING_PAYMENT)
+  paymentReferenceUTR  String?
+  paymentNotes         String?
+  verifiedAt           DateTime?
+  verifiedByUserId     String?
+  verificationNotes    String?
+  subtotalINR          Decimal       @db.Decimal(10, 2)
+  deliveryFeeINR       Decimal       @db.Decimal(10, 2)
+  taxINR               Decimal       @db.Decimal(10, 2)
+  totalAmountINR       Decimal       @db.Decimal(10, 2)
+  isDemo               Boolean       @default(false)
+  accessToken          String?
+  items                OrderItem[]
+  invoice              Invoice?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  @@index([orderNumber])
+  @@index([confirmedOrderNumber])
+  @@index([userId])
+  @@index([paymentStatus])
+  @@map("orders")
+}
+
+model OrderItem {
+  id           String   @id @default(cuid())
+  orderId      String
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId    String?
+  productSku   String
+  productName  String
+  brandName    String?
+  unitPriceINR Decimal  @db.Decimal(10, 2)
+  quantity     Int
+  totalINR     Decimal  @db.Decimal(10, 2)
+  createdAt    DateTime @default(now())
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model Invoice {
+  id            String      @id @default(cuid())
+  invoiceNumber String      @unique
+  orderId       String      @unique
+  order         Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  invoiceType   InvoiceType @default(PROFORMA_INVOICE)
+  issueDate     DateTime    @default(now())
+  dueDate       DateTime?
+  totalAmount   Decimal     @db.Decimal(10, 2)
+  notes         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([invoiceNumber])
+  @@index([orderId])
+  @@map("invoices")
+}
+

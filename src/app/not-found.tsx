@@ -12,7 +12,7 @@ export default function NotFound() {
           Hardware Page Not Found
         </h1>
         <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
-          The requested product category, SKU, or page could not be located in our demo catalogue.
+          The requested product category, SKU, or page could not be located in our hardware catalogue.
         </p>
 
         <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200 text-left text-xs text-slate-700 space-y-1.5">

@@ -34,12 +34,13 @@ export async function registerCustomerAction(formData: {
   gstin?: string;
   district?: string;
   phone?: string;
+  whatsappPhone?: string;
 }): Promise<ActionResponse> {
   if (!isDatabaseConfigured()) {
     return {
       success: false,
       error:
-        'PostgreSQL database is currently unconfigured or offline. Customer accounts cannot be persisted in this demo sandbox.',
+        'PostgreSQL database is currently unconfigured or offline. Customer accounts cannot be persisted until database infrastructure is configured.',
       isDatabaseConnected: false,
     };
   }
@@ -57,6 +58,28 @@ export async function registerCustomerAction(formData: {
   }
   if (!password || password.length < 8) {
     return { success: false, error: 'Password must be at least 8 characters long.' };
+  }
+
+  // Validate phone if provided
+  let normalizedPhone: string | null = null;
+  if (formData.phone && formData.phone.trim()) {
+    const { validateIndianMobile } = await import('@/lib/validation/phoneValidation');
+    const pVal = validateIndianMobile(formData.phone, true);
+    if (!pVal.isValid) {
+      return { success: false, error: pVal.error || 'Invalid mobile phone number.' };
+    }
+    normalizedPhone = pVal.digitsOnly || null;
+  }
+
+  // Validate WhatsApp if provided
+  let normalizedWhatsapp: string | null = null;
+  if (formData.whatsappPhone && formData.whatsappPhone.trim()) {
+    const { validateWhatsAppNumber } = await import('@/lib/validation/phoneValidation');
+    const wVal = validateWhatsAppNumber(formData.whatsappPhone, true);
+    if (!wVal.isValid) {
+      return { success: false, error: wVal.error || 'Invalid WhatsApp number.' };
+    }
+    normalizedWhatsapp = wVal.normalized || null;
   }
 
   const requestedType =
@@ -89,7 +112,8 @@ export async function registerCustomerAction(formData: {
         customerType: requestedType,
         organizationName: (formData.organizationName || '').trim().slice(0, 150) || null,
         gstin: (formData.gstin || '').trim().slice(0, 20) || null,
-        phone: (formData.phone || '').trim().slice(0, 20) || null,
+        phone: normalizedPhone,
+        whatsappPhone: normalizedWhatsapp,
         district: (formData.district || '').trim().slice(0, 50) || null,
         // Statuses are strictly pending/unverified
         businessVerificationStatus:
@@ -135,7 +159,7 @@ export async function loginCustomerAction(formData: {
     return {
       success: false,
       error:
-        'PostgreSQL database is currently unconfigured or offline. Sign-in is disabled in this demo sandbox.',
+        'PostgreSQL database is currently unconfigured or offline. Sign-in is disabled until database persistence is verified.',
       isDatabaseConnected: false,
     };
   }

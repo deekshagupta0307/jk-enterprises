@@ -1,7 +1,7 @@
 import React from 'react';
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant?: 'default' | 'primary' | 'success' | 'warning' | 'info' | 'demo';
+  variant?: 'default' | 'primary' | 'success' | 'warning' | 'info' | 'danger' | 'demo';
   size?: 'sm' | 'md';
 }
 
@@ -25,6 +25,7 @@ export const Badge: React.FC<BadgeProps> = ({
     success: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
     warning: 'bg-amber-50 text-amber-800 border border-amber-200',
     info: 'bg-cyan-50 text-cyan-800 border border-cyan-200',
+    danger: 'bg-rose-50 text-rose-700 border border-rose-200',
     demo: 'bg-amber-100 text-amber-900 border border-amber-300 font-semibold uppercase tracking-wider',
   };
 

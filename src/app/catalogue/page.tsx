@@ -9,9 +9,19 @@ import { CataloguePagination } from '@/components/catalogue/CataloguePagination'
 import CatalogueLoading from './loading';
 
 export const metadata: Metadata = {
-  title: 'Hardware & IT Catalogue | JK Enterprises Rajasthan',
+  title: 'Product & Equipment Catalogue | JK Enterprises Rajasthan',
   description:
-    'Browse our comprehensive range of computer processors, NVMe SSDs, DDR4/DDR5 RAM, networking hardware, CCTV cameras, and IT equipment. Serving Rajasthan institutions, businesses, and wholesale dealers.',
+    'Browse our comprehensive range of commercial products, computer hardware, NVMe storage, networking equipment, and security systems across Rajasthan.',
+  alternates: {
+    canonical: '/catalogue',
+  },
+  openGraph: {
+    title: 'Product & Equipment Catalogue | JK Enterprises Rajasthan',
+    description:
+      'Browse commercial products, computer hardware, storage, and security solutions for Rajasthan retail, institutional, and wholesale clients.',
+    url: '/catalogue',
+    type: 'website',
+  },
 };
 
 interface CataloguePageProps {
@@ -58,6 +68,21 @@ async function CatalogueContent({ searchParams }: CataloguePageProps) {
 
   return (
     <main className="flex-1 bg-slate-50 py-8 sm:py-12">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'ItemList',
+            itemListElement: result.products.map((p, idx) => ({
+              '@type': 'ListItem',
+              position: (page - 1) * limit + idx + 1,
+              name: p.name,
+              description: p.description,
+            })),
+          }),
+        }}
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb Navigation */}
         <Breadcrumb items={[{ label: 'Product Catalogue', isCurrent: true }]} className="mb-6" />
@@ -66,41 +91,19 @@ async function CatalogueContent({ searchParams }: CataloguePageProps) {
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-950 tracking-tight">
-              Hardware & IT Catalogue
+              Product &amp; Equipment Catalogue
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Explore 50+ computer components, high-speed storage, enterprise networking, and security solutions.
+              Explore commercial goods, computer components, high-speed storage, enterprise networking, and equipment.
             </p>
           </div>
 
-          {/* Database Connection Status Badge */}
+          {/* Catalogue Overview Badge */}
           <div className="self-start md:self-auto">
-            {result.isDatabaseConnected ? (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>PostgreSQL Connected</span>
-              </div>
-            ) : result.databaseError ? (
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-50 text-rose-900 border border-rose-200 text-xs font-medium">
-                <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                <div>
-                  <span className="font-semibold">Database Error (Demo Active):</span>
-                  <span className="text-[11px] text-rose-800 ml-1">
-                    Query failed. Serving 55 seed products.
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-900 border border-amber-200 text-xs font-medium">
-                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                <div>
-                  <span className="font-semibold">Demo Sandbox:</span>
-                  <span className="text-[11px] text-amber-800 ml-1">
-                    PostgreSQL Offline (55 Seed Products Active)
-                  </span>
-                </div>
-              </div>
-            )}
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-50 text-blue-900 border border-blue-200 text-xs font-semibold shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+              <span>Available Inventory ({result.totalCount} Products)</span>
+            </div>
           </div>
         </div>
 
