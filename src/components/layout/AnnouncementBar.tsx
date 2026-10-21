@@ -22,7 +22,7 @@ export const AnnouncementBar: React.FC = () => {
         <div className="flex items-center justify-center gap-4 text-[11px] text-slate-300">
           <span className="inline-flex items-center gap-1.5">
             <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            Serving Rajasthan (Jaipur, Jodhpur, Kota & Districts)
+            Serving Rajasthan from Bikaner Hub (All 41 Districts)
           </span>
           <span className="text-slate-600 hidden sm:inline">|</span>
           <span className="text-amber-300 font-medium hidden sm:inline">

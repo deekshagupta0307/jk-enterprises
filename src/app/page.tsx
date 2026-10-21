@@ -8,12 +8,27 @@ import { ProductCard } from '@/components/products/ProductCard';
 import { ProductQuickViewModal } from '@/components/products/ProductQuickViewModal';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { RAJASTHAN_DISTRICTS, BUSINESS_CONFIG } from '@/lib/config/businessConfig';
+import { HeroCarousel } from '@/components/home/HeroCarousel';
+import {
+  validateIndianMobile,
+  validateWhatsAppNumber,
+  sanitizeNational10DigitInput,
+} from '@/lib/validation/phoneValidation';
 
 export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [quickViewProduct, setQuickViewProduct] = useState<ProductDemo | null>(null);
   const [inquirySubmitted, setInquirySubmitted] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  // Quotation form states
+  const [inquiryDistrict, setInquiryDistrict] = useState('Bikaner');
+  const [inquiryPhone, setInquiryPhone] = useState('');
+  const [inquiryPhoneError, setInquiryPhoneError] = useState<string | null>(null);
+  const [inquiryWhatsapp, setInquiryWhatsapp] = useState('');
+  const [inquiryWhatsappError, setInquiryWhatsappError] = useState<string | null>(null);
+  const [inquirySameAsPhone, setInquirySameAsPhone] = useState(false);
 
   // Sync category filter with URL hash if user clicked header nav link
   useEffect(() => {
@@ -38,6 +53,24 @@ export default function HomePage() {
 
   const handleInquirySubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setInquiryPhoneError(null);
+    setInquiryWhatsappError(null);
+
+    const pVal = validateIndianMobile(inquiryPhone, false);
+    if (!pVal.isValid) {
+      setInquiryPhoneError(pVal.error || 'Please enter a valid 10-digit Indian mobile number.');
+      return;
+    }
+
+    const effectiveWhatsapp = inquirySameAsPhone ? inquiryPhone : inquiryWhatsapp;
+    if (effectiveWhatsapp.trim()) {
+      const wVal = validateWhatsAppNumber(effectiveWhatsapp, true);
+      if (!wVal.isValid) {
+        setInquiryWhatsappError(wVal.error || 'Please enter a valid WhatsApp number.');
+        return;
+      }
+    }
+
     setInquirySubmitted(true);
     setTimeout(() => {
       setInquirySubmitted(false);
@@ -47,7 +80,7 @@ export default function HomePage() {
   const faqs = [
     {
       q: 'How do I choose between DDR4 and DDR5 RAM?',
-      a: 'DDR4 and DDR5 memory modules have different physical pin layouts and voltages; they are not interchangeable on the same motherboard. DDR4 is economical for standard office workstations, while DDR5 offers higher memory bandwidth for 13th/14th Gen Intel and AMD AM5 platforms. Ask our AI Assistant for specific motherboard compatibility.',
+      a: 'DDR4 and DDR5 memory modules have different physical pin layouts and voltages; they are not interchangeable on the same motherboard. DDR4 is economical for standard office workstations, while DDR5 offers higher memory bandwidth for 13th/14th Gen Intel and AMD AM5 platforms. Ask JK Assistant for specific compatibility.',
     },
     {
       q: 'What SSD is recommended for heavy office workstations?',
@@ -55,90 +88,18 @@ export default function HomePage() {
     },
     {
       q: 'How will commercial invoicing and institutional orders work?',
-      a: 'On commercial launch, JK Enterprises intends to provide tax-compliant business invoicing for eligible hardware purchases. Schools, educational trusts, and businesses will be able to submit their GSTIN to request input tax credit (ITC) documentation and formal proforma quotations upon verification.',
+      a: 'JK Enterprises provides formal commercial proforma documentation and tax invoices verified against actual manual UPI / Bank Transfer credit. Schools, educational trusts, and businesses can submit their GSTIN to request input tax credit (ITC) documentation upon administrative verification.',
     },
     {
       q: 'What is the delivery coverage across Rajasthan?',
-      a: 'Our target distribution network spans Jaipur, Jodhpur, Kota, Udaipur, Bikaner, Ajmer, Alwar, and surrounding districts. Exact shipping charges and courier transit times will be verified with logistics partners on production release.',
+      a: 'Our central trading hub in Bikaner coordinates regional distribution across all 41 current districts of Rajasthan, with flat local delivery rates for Bikaner and express courier/transport dispatch statewide.',
     },
   ];
 
   return (
     <main className="flex-1 flex flex-col">
-      {/* 1. HERO SECTION */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-blue-50/70 via-slate-50 to-white pt-10 pb-16 sm:pt-16 sm:pb-24 border-b border-slate-200/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="max-w-3xl mx-auto text-center space-y-6">
-            {/* Top Badges */}
-            <div className="inline-flex flex-wrap items-center justify-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-300">
-                <span>श्री</span>
-                <span>Jai Shree Shyam</span>
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-100/80 text-blue-800 border border-blue-200">
-                <span>📍</span>
-                <span>IT Distribution & Procurement in Rajasthan</span>
-              </span>
-            </div>
-
-            {/* Main Headline */}
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-950 tracking-tight leading-[1.12]">
-              Reliable Hardware & IT Solutions for <span className="text-blue-600">Rajasthan</span>
-            </h1>
-
-            {/* Subhead */}
-            <p className="text-sm sm:text-lg text-slate-600 leading-relaxed font-normal max-w-2xl mx-auto">
-              Computer components, high-speed NVMe storage, processors, enterprise networking, and CCTV security equipment. Planned for retail users, schools, corporate offices, and wholesale partners.
-            </p>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-              <Link
-                href="/catalogue"
-                className="w-full sm:w-auto px-6 py-3.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm rounded-xl shadow-md hover:shadow-lg transition-all text-center cursor-pointer inline-flex items-center justify-center gap-2"
-              >
-                <span>Browse Full Catalogue (55+ Products)</span>
-                <span>→</span>
-              </Link>
-              <a
-                href="#catalogue-section"
-                className="w-full sm:w-auto px-6 py-3.5 bg-white hover:bg-slate-50 text-slate-800 font-semibold text-sm rounded-xl border border-slate-300 shadow-xs hover:border-slate-400 transition-all text-center cursor-pointer"
-              >
-                Featured Quick View ↓
-              </a>
-            </div>
-
-            {/* Transparent Demo Indicator */}
-            <p className="text-[11px] text-amber-800 bg-amber-50/80 border border-amber-200 rounded-lg py-1 px-3 inline-block">
-              ℹ️ Preview Prototype: Displayed hardware items, prices, and specs are demonstration data.
-            </p>
-          </div>
-
-          {/* Value Highlights Cards */}
-          <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            <div className="bg-white/90 backdrop-blur-xs p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
-              <span className="text-2xl" aria-hidden="true">⚡</span>
-              <h3 className="font-bold text-slate-900 text-xs sm:text-sm mt-2">Latest Components</h3>
-              <p className="text-[11px] text-slate-500 mt-0.5">Intel, AMD, DDR5 & Gen4/Gen5 SSDs</p>
-            </div>
-            <div className="bg-white/90 backdrop-blur-xs p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
-              <span className="text-2xl" aria-hidden="true">🏫</span>
-              <h3 className="font-bold text-slate-900 text-xs sm:text-sm mt-2">School & Office Labs</h3>
-              <p className="text-[11px] text-slate-500 mt-0.5">Turnkey networking, switches & PCs</p>
-            </div>
-            <div className="bg-white/90 backdrop-blur-xs p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
-              <span className="text-2xl" aria-hidden="true">🏢</span>
-              <h3 className="font-bold text-slate-900 text-xs sm:text-sm mt-2">Approved Wholesale</h3>
-              <p className="text-[11px] text-slate-500 mt-0.5">Trade pricing upon verification</p>
-            </div>
-            <div className="bg-white/90 backdrop-blur-xs p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
-              <span className="text-2xl" aria-hidden="true">🤖</span>
-              <h3 className="font-bold text-slate-900 text-xs sm:text-sm mt-2">AI Hardware Advisor</h3>
-              <p className="text-[11px] text-slate-500 mt-0.5">Instant specs & compatibility advice</p>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* 1. HERO SECTION: Self-advancing carousel covering broad JK Enterprises trading scope */}
+      <HeroCarousel />
 
       {/* 2. CATEGORIES GRID */}
       <section id="categories" className="py-14 sm:py-20 bg-white border-b border-slate-200">
@@ -147,19 +108,19 @@ export default function HomePage() {
             <div>
               <div className="flex items-center gap-2 mb-1.5">
                 <Badge variant="primary" size="sm">
-                  Hardware Categories
+                  Product Categories
                 </Badge>
-                <span className="text-xs text-slate-400">• Comprehensive IT Range</span>
+                <span className="text-xs text-slate-400">• Comprehensive Sourcing Range</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                Explore Hardware by Category
+                Explore Products by Category
               </h2>
               <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                From individual upgrade components to complete institutional IT infrastructure.
+                From individual equipment and components to complete institutional supplies.
               </p>
             </div>
-            <span className="text-xs text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200 font-medium">
-              Demo Inventory Preview
+            <span className="text-xs text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 font-medium">
+              8 Core Categories
             </span>
           </div>
 
@@ -170,7 +131,7 @@ export default function HomePage() {
                 id={cat.slug}
                 href="#catalogue-section"
                 onClick={() => setSelectedCategory(cat.slug)}
-                className="group p-5 rounded-2xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition-all duration-200 bg-slate-50/50 hover:bg-white flex flex-col justify-between cursor-pointer"
+                className="group p-5 rounded-2xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition-all duration-200 bg-slate-50/50 hover:bg-white flex flex-col justify-between cursor-pointer card-premium-interactive"
               >
                 <div>
                   <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-2xl shadow-2xs group-hover:scale-110 transition-transform">
@@ -191,7 +152,7 @@ export default function HomePage() {
                   </p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between text-xs">
-                  <span className="text-slate-400 font-medium">{cat.itemCountDemo} Sample SKUs</span>
+                  <span className="text-slate-400 font-medium">{cat.itemCountDemo} Products</span>
                   <span className="text-blue-600 font-semibold group-hover:translate-x-1 transition-transform">
                     Filter →
                   </span>
@@ -202,26 +163,26 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 3. FEATURED PRODUCTS CATALOGUE (DEMO) */}
+      {/* 3. FEATURED PRODUCTS CATALOGUE */}
       <section id="catalogue-section" className="py-14 sm:py-20 bg-slate-50/70 border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-1.5">
-                <Badge variant="demo" size="sm">
-                  Demo Products
+                <Badge variant="primary" size="sm">
+                  Featured Products
                 </Badge>
-                <span className="text-xs text-slate-500">• Prototype Storefront</span>
+                <span className="text-xs text-slate-500">• Ready for Procurement</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                Featured IT Hardware & Components
+                Featured Products &amp; Equipment
               </h2>
               <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                Sample catalogue showcasing specifications, pricing display, and interactive quick views.
+                Explore popular specifications, competitive pricing, and immediate dispatch options.
               </p>
             </div>
             <div className="text-xs text-slate-600">
-              Showing <strong>{filteredProducts.length}</strong> demo products
+              Showing <strong>{filteredProducts.length}</strong> products
             </div>
           </div>
 
@@ -273,7 +234,7 @@ export default function HomePage() {
             <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 my-4">
               <span className="text-3xl" aria-hidden="true">🔍</span>
               <p className="mt-2 text-sm font-semibold text-slate-800">
-                No demo products match this category filter.
+                No products match this category filter.
               </p>
               <button
                 type="button"
@@ -289,12 +250,12 @@ export default function HomePage() {
           <div className="mt-10 p-6 bg-gradient-to-r from-blue-900 to-indigo-950 rounded-2xl text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-md">
             <div>
               <div className="inline-flex items-center gap-2 text-xs font-semibold text-blue-200 mb-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>55+ Hardware SKUs Available in Database</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span>55+ Products &amp; Supplies Available in Catalogue</span>
               </div>
-              <h3 className="text-base sm:text-lg font-bold">Looking for specific sockets, memory speeds or interfaces?</h3>
+              <h3 className="text-base sm:text-lg font-bold">Looking for specific products, configurations or bulk supplies?</h3>
               <p className="text-xs text-blue-200/80 mt-0.5">
-                Explore our full server-queried catalogue with technical specification filters, brand toggles, and price bounds.
+                Explore our full catalogue with category filters, specification details, and clear price indications.
               </p>
             </div>
             <Link
@@ -320,67 +281,67 @@ export default function HomePage() {
               </div>
 
               <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
-                Turnkey Hardware Supply for Schools, Offices & Dealers
+                Commercial &amp; Institutional Supply for Schools, Offices &amp; Businesses
               </h2>
 
               <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-                Whether you are planning a 50-workstation computer lab in a school, upgrading network infrastructure for an enterprise, or reselling hardware as an approved dealer, JK Enterprises is building a dedicated B2B procurement workflow.
+                Whether you are planning educational lab setups, equipping an office with IT hardware &amp; commercial supplies, or procuring merchandise in bulk, JK Enterprises coordinates wholesale quotes and regional delivery.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
                   <span className="text-xl" aria-hidden="true">🏫</span>
-                  <h4 className="font-bold text-slate-900 text-xs sm:text-sm mt-1.5">Schools & Colleges</h4>
+                  <h4 className="font-bold text-slate-900 text-xs sm:text-sm mt-1.5">Schools &amp; Institutions</h4>
                   <p className="text-[11px] text-slate-500 mt-1">
-                    Computer lab bulk packages, gigabit cabling & monitors.
+                    Computer lab packages, educational supplies &amp; monitors.
                   </p>
                 </div>
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
                   <span className="text-xl" aria-hidden="true">🏢</span>
-                  <h4 className="font-bold text-slate-900 text-xs sm:text-sm mt-1.5">Offices & Firms</h4>
+                  <h4 className="font-bold text-slate-900 text-xs sm:text-sm mt-1.5">Offices &amp; Enterprises</h4>
                   <p className="text-[11px] text-slate-500 mt-1">
-                    LaserJet printers, NVMe storage & PoE security setups.
+                    Office equipment, NVMe storage &amp; security setups.
                   </p>
                 </div>
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
                   <span className="text-xl" aria-hidden="true">🤝</span>
-                  <h4 className="font-bold text-slate-900 text-xs sm:text-sm mt-1.5">Approved Dealers</h4>
+                  <h4 className="font-bold text-slate-900 text-xs sm:text-sm mt-1.5">Commercial Partners</h4>
                   <p className="text-[11px] text-slate-500 mt-1">
                     Trade pricing upon business verification.
                   </p>
                 </div>
               </div>
 
-              <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-1">
-                <p className="font-semibold text-amber-950">Transparency & Safeguard Notice:</p>
+              <div className="p-4 bg-slate-100 rounded-xl border border-slate-200 text-xs text-slate-700 space-y-1">
+                <p className="font-semibold text-slate-900">Commercial Assistance Notice:</p>
                 <p>
-                  Wholesale trade discounts, credit policies, and minimum order quantities are established upon direct distributor agreement. They are not hardcoded or fabricated in this preview.
+                  Trade discounts, credit policies, and volume pricing are tailored per institutional requirements upon review by our commercial sales desk in {BUSINESS_CONFIG.city}. Direct desk support: <a href={BUSINESS_CONFIG.whatsappLink} target="_blank" rel="noopener noreferrer" className="text-emerald-700 font-bold hover:underline">WhatsApp (+91 {BUSINESS_CONFIG.whatsappNumber})</a>.
                 </p>
               </div>
             </div>
 
-            {/* Right: Mock B2B Inquiry Form (Safe Preview) */}
+            {/* Right: B2B Quotation Request Form */}
             <div className="lg:col-span-5 bg-slate-50 rounded-2xl p-6 border border-slate-200 shadow-sm">
               <h3 className="font-bold text-slate-900 text-base">
-                Request a Formal Quotation (Preview)
+                Request an Institutional Quotation
               </h3>
               <p className="text-xs text-slate-500 mt-1 mb-4">
-                Demonstrates the upcoming institutional quotation workflow.
+                Fast commercial quote turnaround for schools, laboratories, offices, and wholesale partners.
               </p>
 
               {inquirySubmitted ? (
                 <div className="p-5 bg-emerald-50 border border-emerald-200 rounded-xl text-center space-y-2 animate-in fade-in duration-200">
                   <span className="text-3xl" aria-hidden="true">✅</span>
-                  <h4 className="font-bold text-emerald-900 text-sm">Demo Inquiry Acknowledged!</h4>
+                  <h4 className="font-bold text-emerald-900 text-sm">Quotation Request Logged!</h4>
                   <p className="text-xs text-emerald-800 leading-relaxed">
-                    Thank you. In production, this form will connect directly to our Rajasthan commercial sales desk for price estimations and quotation preparation.
+                    Thank you. Our commercial sales desk in Bikaner has received your request and will prepare an itemized quote with institutional pricing.
                   </p>
                 </div>
               ) : (
                 <form onSubmit={handleInquirySubmit} className="space-y-3.5">
                   <div>
                     <label htmlFor="b2b-org-name" className="block text-xs font-semibold text-slate-700 mb-1">
-                      Organization / School / Business Name
+                      Organization / School / Business Name *
                     </label>
                     <input
                       id="b2b-org-name"
@@ -392,7 +353,7 @@ export default function HomePage() {
                   </div>
                   <div>
                     <label htmlFor="b2b-contact-name" className="block text-xs font-semibold text-slate-700 mb-1">
-                      Contact Person & Designation
+                      Contact Person & Designation *
                     </label>
                     <input
                       id="b2b-contact-name"
@@ -402,20 +363,144 @@ export default function HomePage() {
                       className="w-full text-xs px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+
+                  {/* Phone & WhatsApp Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label htmlFor="b2b-phone" className="block text-xs font-semibold text-slate-700 mb-1">
+                        Contact Mobile Number *
+                      </label>
+                      <div className={`flex rounded-xl shadow-xs overflow-hidden border bg-white transition-all ${
+                        inquiryPhoneError ? 'border-rose-400 focus-within:ring-2 focus-within:ring-rose-500' : 'border-slate-300 focus-within:ring-2 focus-within:ring-blue-600 focus-within:border-transparent'
+                      }`}>
+                        <span className="inline-flex items-center px-3 bg-slate-100 text-slate-600 text-xs font-medium border-r border-slate-300 select-none">
+                          +91
+                        </span>
+                        <input
+                          id="b2b-phone"
+                          type="tel"
+                          required
+                          inputMode="numeric"
+                          maxLength={10}
+                          placeholder="9876543210"
+                          value={inquiryPhone}
+                          onChange={(e) => {
+                            const cleaned = sanitizeNational10DigitInput(e.target.value);
+                            setInquiryPhone(cleaned);
+                            if (inquirySameAsPhone) {
+                              setInquiryWhatsapp(cleaned);
+                            }
+                            if (inquiryPhoneError) {
+                              const check = validateIndianMobile(cleaned, false);
+                              if (check.isValid) setInquiryPhoneError(null);
+                            }
+                          }}
+                          onBlur={() => {
+                            if (inquiryPhone.trim()) {
+                              const check = validateIndianMobile(inquiryPhone, false);
+                              if (!check.isValid) {
+                                setInquiryPhoneError(check.error || 'Please enter a valid 10-digit Indian mobile number.');
+                              } else {
+                                setInquiryPhoneError(null);
+                              }
+                            }
+                          }}
+                          className="flex-1 w-full px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden"
+                          aria-label="10-digit Contact Mobile Number"
+                        />
+                      </div>
+                      {inquiryPhoneError && (
+                        <p className="text-[10px] text-rose-600 mt-1">{inquiryPhoneError}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label htmlFor="b2b-whatsapp" className="block text-xs font-semibold text-slate-700">
+                          WhatsApp Mobile Number
+                        </label>
+                        {inquiryPhone.length === 10 && (
+                          <label className="flex items-center gap-1 text-[10px] text-blue-700 font-semibold cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={inquirySameAsPhone}
+                              onChange={(e) => {
+                                setInquirySameAsPhone(e.target.checked);
+                                if (e.target.checked) {
+                                  setInquiryWhatsapp(inquiryPhone);
+                                  setInquiryWhatsappError(null);
+                                }
+                              }}
+                              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span>Same as mobile</span>
+                          </label>
+                        )}
+                      </div>
+                      <div className={`flex rounded-xl shadow-xs overflow-hidden border bg-white transition-all ${
+                        inquirySameAsPhone ? 'bg-slate-50 opacity-80' : ''
+                      } ${
+                        inquiryWhatsappError ? 'border-rose-400 focus-within:ring-2 focus-within:ring-rose-500' : 'border-slate-300 focus-within:ring-2 focus-within:ring-blue-600 focus-within:border-transparent'
+                      }`}>
+                        <span className="inline-flex items-center px-3 bg-slate-100 text-slate-600 text-xs font-medium border-r border-slate-300 select-none">
+                          +91
+                        </span>
+                        <input
+                          id="b2b-whatsapp"
+                          type="tel"
+                          inputMode="numeric"
+                          maxLength={10}
+                          placeholder="WhatsApp number"
+                          value={inquirySameAsPhone ? inquiryPhone : inquiryWhatsapp}
+                          disabled={inquirySameAsPhone}
+                          onChange={(e) => {
+                            const cleaned = sanitizeNational10DigitInput(e.target.value);
+                            setInquiryWhatsapp(cleaned);
+                            if (inquirySameAsPhone && cleaned !== inquiryPhone) {
+                              setInquirySameAsPhone(false);
+                            }
+                            if (inquiryWhatsappError) {
+                              const check = validateWhatsAppNumber(cleaned, true);
+                              if (check.isValid) setInquiryWhatsappError(null);
+                            }
+                          }}
+                          onBlur={() => {
+                            const effective = inquirySameAsPhone ? inquiryPhone : inquiryWhatsapp;
+                            if (effective.trim()) {
+                              const check = validateWhatsAppNumber(effective, true);
+                              if (!check.isValid) {
+                                setInquiryWhatsappError(check.error || 'Please enter a valid WhatsApp number.');
+                              } else {
+                                setInquiryWhatsappError(null);
+                              }
+                            }
+                          }}
+                          className="flex-1 w-full px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden disabled:bg-slate-50 disabled:text-slate-500"
+                          aria-label="WhatsApp Number (10 digits)"
+                        />
+                      </div>
+                      {inquiryWhatsappError && (
+                        <p className="text-[10px] text-rose-600 mt-1">{inquiryWhatsappError}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label htmlFor="b2b-district" className="block text-xs font-semibold text-slate-700 mb-1">
-                        District (Rajasthan)
+                        District (Rajasthan) *
                       </label>
-                      <select id="b2b-district" className="w-full text-xs px-3 py-2.5 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600">
-                        <option>Jaipur</option>
-                        <option>Jodhpur</option>
-                        <option>Kota</option>
-                        <option>Udaipur</option>
-                        <option>Bikaner</option>
-                        <option>Ajmer</option>
-                        <option>Alwar</option>
-                        <option>Other Rajasthan District</option>
+                      <select
+                        id="b2b-district"
+                        value={inquiryDistrict}
+                        onChange={(e) => setInquiryDistrict(e.target.value)}
+                        className="w-full text-xs px-3 py-2.5 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      >
+                        {RAJASTHAN_DISTRICTS.map((dist) => (
+                          <option key={dist} value={dist}>
+                            {dist}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div>
@@ -423,14 +508,15 @@ export default function HomePage() {
                         Requirement Type
                       </label>
                       <select id="b2b-req-type" className="w-full text-xs px-3 py-2.5 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600">
-                        <option>Computer Lab Setup</option>
-                        <option>Bulk SSD / RAM Upgrade</option>
-                        <option>CCTV Surveillance</option>
-                        <option>Networking Switches</option>
-                        <option>Dealer Wholesale Enquiry</option>
+                        <option>Commercial Equipment &amp; Supplies</option>
+                        <option>Computer Lab Workstations &amp; IT</option>
+                        <option>Office Stationery &amp; Furnishings</option>
+                        <option>CCTV Surveillance Network</option>
+                        <option>Bulk Wholesale Distribution</option>
                       </select>
                     </div>
                   </div>
+
                   <div>
                     <label htmlFor="b2b-notes" className="block text-xs font-semibold text-slate-700 mb-1">
                       Estimated Quantities / Requirements
@@ -438,16 +524,13 @@ export default function HomePage() {
                     <textarea
                       id="b2b-notes"
                       rows={3}
-                      placeholder="Describe items, specifications or expected quantity..."
+                      placeholder="Specify items, specifications, estimated unit quantities or requirements..."
                       className="w-full text-xs px-3.5 py-2 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"
                     ></textarea>
                   </div>
-                  <Button type="submit" variant="primary" size="md" className="w-full text-xs font-semibold">
-                    Submit Demo Inquiry
+                  <Button type="submit" variant="primary" size="md" className="w-full text-xs font-bold">
+                    Submit Quotation Request →
                   </Button>
-                  <p className="text-[10px] text-slate-400 text-center">
-                    Simulated action • No data transmitted to external servers
-                  </p>
                 </form>
               )}
             </div>
@@ -466,62 +549,62 @@ export default function HomePage() {
               Why Partner with JK Enterprises?
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 mt-1">
-              Regional hardware supply for Rajasthan grounded in transparent business practices.
+              Regional commercial supply and equipment distribution for Rajasthan.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-2.5">
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-2.5 card-premium-interactive">
               <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center text-xl font-bold" aria-hidden="true">
                 ✓
               </div>
               <h3 className="font-bold text-slate-900 text-sm sm:text-base">
-                Branded Hardware Range
+                Broad Product Range
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Products catalogued from recognized brands and hardware lines. Sourcing channels and warranty terms will be confirmed upon commercial launch.
+                Products catalogued from recognized brands and equipment lines. Sourcing channels and warranty terms will be confirmed upon commercial launch.
               </p>
             </div>
 
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-2.5">
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-2.5 card-premium-interactive">
               <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-xl font-bold" aria-hidden="true">
                 📄
               </div>
               <h3 className="font-bold text-slate-900 text-sm sm:text-base">
-                Commercial Invoicing (Planned)
+                Commercial Invoicing
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Commercial invoicing designed to support registered businesses and educational institutions with formal tax documentation upon production rollout.
+                Commercial proforma estimates and official tax invoices provided for registered enterprises, educational institutions, and businesses upon manual payment verification.
               </p>
             </div>
 
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-2.5">
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-2.5 card-premium-interactive">
               <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center text-xl font-bold" aria-hidden="true">
                 🤖
               </div>
               <h3 className="font-bold text-slate-900 text-sm sm:text-base">
-                AI Hardware Advisory
+                JK Assistant Advisory
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Eliminate compatibility guesswork with our built-in hardware advisor for motherboard, CPU, RAM, and storage matching.
+                Fast product advisory, order procedure guidance, and quotation assistance with our built-in assistant.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 6. HARDWARE FAQ SECTION */}
+      {/* 6. FAQ SECTION */}
       <section className="py-14 sm:py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
             <Badge variant="primary" size="sm">
-              Guidance & Questions
+              Guidance &amp; Questions
             </Badge>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-2">
-              Frequently Asked Hardware Questions
+              Frequently Asked Questions
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Common technical guidance regarding memory standards, storage upgrades, and B2B orders.
+              Common guidance regarding product lines, order placement, and institutional procurement.
             </p>
           </div>
 
