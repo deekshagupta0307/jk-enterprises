@@ -6,6 +6,8 @@ import { isDatabaseConfigured } from '@/lib/db/prisma';
 import { Breadcrumb } from '@/components/layout/Breadcrumb';
 import { AccountAuthForms } from '@/components/account/AccountAuthForms';
 
+export const instant = false;
+
 export const metadata: Metadata = {
   title: 'Register Account | JK Enterprises Rajasthan',
   description: 'Create a customer or dealer account with JK Enterprises.',

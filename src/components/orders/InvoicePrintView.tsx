@@ -100,12 +100,14 @@ export const InvoicePrintView: React.FC<InvoicePrintViewProps> = ({ order }) => 
               {BUSINESS_CONFIG.name}
             </h1>
             <p className="text-slate-600 text-[11px] font-medium">{BUSINESS_CONFIG.tagline}</p>
-            <p className="text-slate-500 text-[11px] mt-1 max-w-sm">{BUSINESS_CONFIG.addressLine}</p>
+            <p className="text-slate-500 text-[11px] mt-1 max-w-sm">
+              <span className="text-slate-600 font-medium">Business Location: </span>{BUSINESS_CONFIG.addressLine}
+            </p>
             <p className="text-slate-500 text-[11px]">
               Email: {BUSINESS_CONFIG.email} • Ph: {BUSINESS_CONFIG.phone} • WhatsApp: {BUSINESS_CONFIG.whatsappNumber}
             </p>
             <p className="text-slate-800 font-mono text-[11px] mt-1">
-              <strong>GSTIN:</strong> {BUSINESS_CONFIG.gstin} • <strong>State Code:</strong> 08 (Rajasthan)
+              <strong>GSTIN:</strong> {BUSINESS_CONFIG.gstin} • <strong>PAN:</strong> {BUSINESS_CONFIG.pan} • <strong>State Code:</strong> 08 (Rajasthan)
             </p>
           </div>
 
@@ -214,11 +216,11 @@ export const InvoicePrintView: React.FC<InvoicePrintViewProps> = ({ order }) => 
               <tr className="border-b-2 border-slate-900 text-slate-800 font-bold uppercase text-[10px]">
                 <th className="py-2.5 px-2">#</th>
                 <th className="py-2.5 px-2">Description of Goods &amp; Supplies</th>
-                <th className="py-2.5 px-2">HSN</th>
+                <th className="py-2.5 px-2">HSN / Class</th>
                 <th className="py-2.5 px-2 text-center">Qty</th>
                 <th className="py-2.5 px-2 text-right">Unit Rate (₹)</th>
                 <th className="py-2.5 px-2 text-right">Taxable Value (₹)</th>
-                <th className="py-2.5 px-2 text-right">GST (18%)</th>
+                <th className="py-2.5 px-2 text-right">Estimated Tax (₹)</th>
                 <th className="py-2.5 px-2 text-right">Total Amount (₹)</th>
               </tr>
             </thead>
@@ -237,7 +239,7 @@ export const InvoicePrintView: React.FC<InvoicePrintViewProps> = ({ order }) => 
                         </span>
                       )}
                     </td>
-                    <td className="py-3 px-2 font-mono text-slate-500">8471</td>
+                    <td className="py-3 px-2 font-mono text-[10px] text-slate-500">TBC (Provisional)</td>
                     <td className="py-3 px-2 text-center font-bold text-slate-900">{item.quantity}</td>
                     <td className="py-3 px-2 text-right font-mono text-slate-700">
                       ₹{item.unitPriceINR.toLocaleString('en-IN')}
@@ -271,17 +273,31 @@ export const InvoicePrintView: React.FC<InvoicePrintViewProps> = ({ order }) => 
             {/* Remittance Bank Info on Invoice */}
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[10px] space-y-1">
               <span className="font-bold text-slate-800 uppercase block">Bank Remittance Particulars</span>
-              <p className="text-slate-600">
-                A/c Name: <strong>{PAYMENT_CONFIG.bank.accountName}</strong> • A/c No:{' '}
-                <strong className="font-mono">{PAYMENT_CONFIG.bank.accountNumber}</strong>
-              </p>
-              <p className="text-slate-600">
-                Bank: {PAYMENT_CONFIG.bank.bankName} • IFSC:{' '}
-                <strong className="font-mono">{PAYMENT_CONFIG.bank.ifscCode}</strong>
-              </p>
-              <p className="text-slate-600">
-                UPI ID: <strong className="font-mono text-emerald-800">{PAYMENT_CONFIG.upi.upiId}</strong>
-              </p>
+              {PAYMENT_CONFIG.bank.isConfigured || PAYMENT_CONFIG.upi.isConfigured ? (
+                <>
+                  {PAYMENT_CONFIG.bank.isConfigured && (
+                    <>
+                      <p className="text-slate-600">
+                        A/c Name: <strong>{PAYMENT_CONFIG.bank.accountName}</strong> • A/c No:{' '}
+                        <strong className="font-mono">{PAYMENT_CONFIG.bank.accountNumber}</strong>
+                      </p>
+                      <p className="text-slate-600">
+                        Bank: {PAYMENT_CONFIG.bank.bankName} • IFSC:{' '}
+                        <strong className="font-mono">{PAYMENT_CONFIG.bank.ifscCode}</strong>
+                      </p>
+                    </>
+                  )}
+                  {PAYMENT_CONFIG.upi.isConfigured && (
+                    <p className="text-slate-600">
+                      UPI ID: <strong className="font-mono text-emerald-800">{PAYMENT_CONFIG.upi.upiId}</strong>
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="text-slate-600 italic">
+                  Verified payment instructions will be provided after order confirmation.
+                </p>
+              )}
             </div>
           </div>
 
@@ -293,17 +309,17 @@ export const InvoicePrintView: React.FC<InvoicePrintViewProps> = ({ order }) => 
 
             {order.financials.isInterstate ? (
               <div className="flex justify-between text-slate-600">
-                <span>Integrated Tax (IGST 18%)</span>
+                <span>Integrated Tax (IGST - Provisional)</span>
                 <span className="font-mono">₹{order.financials.igstINR.toLocaleString('en-IN')}</span>
               </div>
             ) : (
               <>
                 <div className="flex justify-between text-slate-600">
-                  <span>Central Tax (CGST 9%)</span>
+                  <span>Central Tax (CGST - Provisional)</span>
                   <span className="font-mono">₹{order.financials.cgstINR.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="flex justify-between text-slate-600">
-                  <span>State Tax (SGST 9%)</span>
+                  <span>State Tax (SGST - Provisional)</span>
                   <span className="font-mono">₹{order.financials.sgstINR.toLocaleString('en-IN')}</span>
                 </div>
               </>
@@ -330,7 +346,7 @@ export const InvoicePrintView: React.FC<InvoicePrintViewProps> = ({ order }) => 
           <p className="font-bold text-slate-700 uppercase">Declaration & Terms of Supply:</p>
           <p>1. Goods once dispatched are covered under respective manufacturer warranty terms across authorized service centers.</p>
           <p>2. Payment must be cleared prior to dispatch via verified manual UPI / NEFT transfer.</p>
-          <p>3. This is a computer-generated commercial document issued by JK Enterprises, Bikaner, Rajasthan.</p>
+          <p>3. Tax values and HSN classifications are provisional commercial estimates. Final statutory GST liability and verified tariff codes will be determined upon dispatch by JK Enterprises, Bikaner, Rajasthan.</p>
           <p className="pt-2 text-right font-semibold text-slate-700">For JK Enterprises — Authorized Signatory</p>
         </div>
       </div>

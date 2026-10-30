@@ -6,6 +6,8 @@ import { isDatabaseConfigured } from '@/lib/db/prisma';
 import { Breadcrumb } from '@/components/layout/Breadcrumb';
 import { AccountAuthForms } from '@/components/account/AccountAuthForms';
 
+export const instant = false;
+
 export const metadata: Metadata = {
   title: 'Sign In | JK Enterprises Rajasthan',
   description: 'Sign in to your JK Enterprises customer or dealer portal account.',

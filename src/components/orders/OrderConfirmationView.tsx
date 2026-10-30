@@ -34,6 +34,7 @@ export const OrderConfirmationView: React.FC<OrderConfirmationViewProps> = ({
   const isAdminOrStaff = userRole === 'ADMIN' || userRole === 'STAFF';
 
   const copyToClipboard = (text: string, label: string) => {
+    if (!text || text.trim() === '') return;
     navigator.clipboard.writeText(text);
     setCopiedField(label);
     setTimeout(() => setCopiedField(null), 2500);
@@ -169,6 +170,19 @@ export const OrderConfirmationView: React.FC<OrderConfirmationViewProps> = ({
         </div>
       </div>
 
+      {/* Database Persistence Transparency Notice */}
+      {!order.isPersisted && (
+        <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200/90 text-amber-950 text-xs flex items-start gap-3">
+          <span className="text-amber-700 text-base shrink-0 mt-0.5" aria-hidden="true">⚠️</span>
+          <div>
+            <p className="font-bold text-amber-950">Development & Testing Session Notice</p>
+            <p className="mt-0.5 text-amber-900/90 leading-relaxed text-[11px]">
+              Durable PostgreSQL database storage is not currently connected to this deployment. This order attempt is held in temporary memory for workflow testing; permanent cross-session database persistence requires configured PostgreSQL credentials and migrations.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Admin Verification Desk (Visible only to authorized Staff/Admin) */}
       {isAdminOrStaff && (
         <div className="p-6 bg-slate-900 text-white rounded-3xl border border-slate-700 shadow-xl space-y-4">
@@ -222,7 +236,7 @@ export const OrderConfirmationView: React.FC<OrderConfirmationViewProps> = ({
                 type="text"
                 value={adminNotes}
                 onChange={(e) => setAdminNotes(e.target.value)}
-                placeholder="e.g. Verified credit of ₹... on SBI Current Account statement at 11:45 AM"
+                placeholder="e.g. Verified credit of ₹... on current account bank statement at 11:45 AM"
                 className="w-full text-xs px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -309,70 +323,100 @@ export const OrderConfirmationView: React.FC<OrderConfirmationViewProps> = ({
           </div>
 
           {order.paymentMethod === 'MANUAL_UPI_QR' ? (
-            <div className="space-y-4">
-              <div className="p-4 bg-slate-800/80 rounded-2xl border border-slate-700 flex items-center gap-4">
-                <div className="w-20 h-20 bg-white rounded-xl p-1.5 flex flex-col items-center justify-center shrink-0 text-slate-900 text-center">
-                  <span className="text-lg">📱</span>
-                  <span className="text-[8px] font-bold">UPI QR</span>
-                  <span className="text-[8px] font-extrabold text-blue-900">₹{order.totalAmountINR.toLocaleString('en-IN')}</span>
+            PAYMENT_CONFIG.upi.isConfigured && PAYMENT_CONFIG.upi.upiId ? (
+              <div className="space-y-4">
+                <div className="p-4 bg-slate-800/80 rounded-2xl border border-slate-700 flex items-center gap-4">
+                  <div className="w-20 h-20 bg-white rounded-xl p-1.5 flex flex-col items-center justify-center shrink-0 text-slate-900 text-center">
+                    <span className="text-lg">📱</span>
+                    <span className="text-[8px] font-bold">UPI QR</span>
+                    <span className="text-[8px] font-extrabold text-blue-900">₹{order.totalAmountINR.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="space-y-1 text-xs">
+                    <span className="text-[10px] text-slate-400 block uppercase font-bold">Pay via UPI ID</span>
+                    <code className="text-emerald-400 font-mono font-bold block">{PAYMENT_CONFIG.upi.upiId}</code>
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(PAYMENT_CONFIG.upi.upiId, 'upi')}
+                      className="px-2.5 py-1 text-[10px] font-semibold bg-slate-700 hover:bg-slate-600 rounded-md transition-colors cursor-pointer"
+                    >
+                      {copiedField === 'upi' ? '✓ Copied' : 'Copy UPI ID'}
+                    </button>
+                  </div>
                 </div>
-                <div className="space-y-1 text-xs">
-                  <span className="text-[10px] text-slate-400 block uppercase font-bold">Pay via UPI ID</span>
-                  <code className="text-emerald-400 font-mono font-bold block">{PAYMENT_CONFIG.upi.upiId}</code>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Payee: <strong className="text-white">{PAYMENT_CONFIG.upi.payeeName}</strong>. Scan using GPay, PhonePe, Paytm, or BHIM.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2 p-4 bg-slate-800/80 rounded-2xl border border-slate-700">
+                <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
+                  <span>ℹ️</span>
+                  <span>UPI Payment Details Pending Verification</span>
+                </div>
+                <p className="text-xs text-slate-200 font-medium leading-relaxed">
+                  Verified payment instructions will be provided after order confirmation.
+                </p>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Our commercial sales desk will confirm order details and provide verified payment instructions.
+                </p>
+              </div>
+            )
+          ) : (
+            PAYMENT_CONFIG.bank.isConfigured && PAYMENT_CONFIG.bank.accountNumber ? (
+              <div className="space-y-3 text-xs">
+                <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700 flex justify-between items-center">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block uppercase font-bold">Account Beneficiary</span>
+                    <span className="font-bold text-white">{PAYMENT_CONFIG.bank.accountName}</span>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700 flex justify-between items-center">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block uppercase font-bold">Account Number</span>
+                    <span className="font-mono font-bold text-emerald-400">{PAYMENT_CONFIG.bank.accountNumber}</span>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => copyToClipboard(PAYMENT_CONFIG.upi.upiId, 'upi')}
-                    className="px-2.5 py-1 text-[10px] font-semibold bg-slate-700 hover:bg-slate-600 rounded-md transition-colors cursor-pointer"
+                    onClick={() => copyToClipboard(PAYMENT_CONFIG.bank.accountNumber, 'acct')}
+                    className="px-2 py-1 text-[10px] font-semibold bg-slate-700 hover:bg-slate-600 rounded cursor-pointer"
                   >
-                    {copiedField === 'upi' ? '✓ Copied' : 'Copy UPI ID'}
+                    {copiedField === 'acct' ? '✓' : 'Copy'}
                   </button>
                 </div>
-              </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed">
-                Payee: <strong className="text-white">{PAYMENT_CONFIG.upi.payeeName}</strong>. Scan using GPay, PhonePe, Paytm, or BHIM.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3 text-xs">
-              <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700 flex justify-between items-center">
-                <div>
-                  <span className="text-[10px] text-slate-400 block uppercase font-bold">Account Beneficiary</span>
-                  <span className="font-bold text-white">{PAYMENT_CONFIG.bank.accountName}</span>
-                </div>
-              </div>
 
-              <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700 flex justify-between items-center">
-                <div>
-                  <span className="text-[10px] text-slate-400 block uppercase font-bold">Account Number</span>
-                  <span className="font-mono font-bold text-emerald-400">{PAYMENT_CONFIG.bank.accountNumber}</span>
+                <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700 flex justify-between items-center">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block uppercase font-bold">IFSC Code</span>
+                    <span className="font-mono font-bold text-emerald-400">{PAYMENT_CONFIG.bank.ifscCode}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(PAYMENT_CONFIG.bank.ifscCode, 'ifsc')}
+                    className="px-2 py-1 text-[10px] font-semibold bg-slate-700 hover:bg-slate-600 rounded cursor-pointer"
+                  >
+                    {copiedField === 'ifsc' ? '✓' : 'Copy'}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => copyToClipboard(PAYMENT_CONFIG.bank.accountNumber, 'acct')}
-                  className="px-2 py-1 text-[10px] font-semibold bg-slate-700 hover:bg-slate-600 rounded cursor-pointer"
-                >
-                  {copiedField === 'acct' ? '✓' : 'Copy'}
-                </button>
-              </div>
 
-              <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700 flex justify-between items-center">
-                <div>
-                  <span className="text-[10px] text-slate-400 block uppercase font-bold">IFSC Code</span>
-                  <span className="font-mono font-bold text-emerald-400">{PAYMENT_CONFIG.bank.ifscCode}</span>
+                <p className="text-[11px] text-slate-400">
+                  {PAYMENT_CONFIG.bank.bankName}, {PAYMENT_CONFIG.bank.branch} ({PAYMENT_CONFIG.bank.accountType})
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2 p-4 bg-slate-800/80 rounded-2xl border border-slate-700">
+                <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
+                  <span>ℹ️</span>
+                  <span>Bank Remittance Particulars Pending Verification</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => copyToClipboard(PAYMENT_CONFIG.bank.ifscCode, 'ifsc')}
-                  className="px-2 py-1 text-[10px] font-semibold bg-slate-700 hover:bg-slate-600 rounded cursor-pointer"
-                >
-                  {copiedField === 'ifsc' ? '✓' : 'Copy'}
-                </button>
+                <p className="text-xs text-slate-200 font-medium leading-relaxed">
+                  Verified payment instructions will be provided after order confirmation.
+                </p>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Our commercial sales desk will confirm order details and provide verified bank details for NEFT/RTGS transfer.
+                </p>
               </div>
-
-              <p className="text-[11px] text-slate-400">
-                {PAYMENT_CONFIG.bank.bankName}, {PAYMENT_CONFIG.bank.branch} ({PAYMENT_CONFIG.bank.accountType})
-              </p>
-            </div>
+            )
           )}
         </div>
 
@@ -514,7 +558,7 @@ export const OrderConfirmationView: React.FC<OrderConfirmationViewProps> = ({
               <span className="font-mono">₹{order.financials.taxableSubtotalINR.toLocaleString('en-IN')}</span>
             </div>
             <div className="flex justify-between text-slate-600">
-              <span>GST (18% IT Hardware)</span>
+              <span>Estimated Tax (Provisional GST)</span>
               <span className="font-mono">₹{order.financials.totalTaxINR.toLocaleString('en-IN')}</span>
             </div>
             <div className="flex justify-between text-slate-600">

@@ -38,6 +38,18 @@ export async function submitQuotationInquiry(
 
   const generatedInquiryNum = `JK-INQ-${Date.now().toString(36).toUpperCase()}`;
 
+  // Guard: In production, database persistence is mandatory
+  if (process.env.NODE_ENV === 'production' && !isDatabaseConfigured()) {
+    return {
+      success: false,
+      inquiryNumber: '',
+      isPersisted: false,
+      isDemo: false,
+      message:
+        'Database connection is not configured on this environment. Quotation inquiries cannot be processed without durable database storage.',
+    };
+  }
+
   // 2. Persist to PostgreSQL if connected
   if (isDatabaseConfigured()) {
     try {
@@ -65,13 +77,32 @@ export async function submitQuotationInquiry(
     } catch (err) {
       const rawMsg = err instanceof Error ? err.message : String(err);
       console.warn(
-        '[Quotation Service] Database persistence failed, returning safe simulation acknowledgment:',
+        '[Quotation Service] Database persistence failed:',
         sanitizeErrorMessage(rawMsg)
       );
+      if (process.env.NODE_ENV === 'production') {
+        return {
+          success: false,
+          inquiryNumber: '',
+          isPersisted: false,
+          isDemo: false,
+          message: 'Database error: Failed to record quotation inquiry. Please try again or contact support.',
+        };
+      }
     }
   }
 
-  // 3. Fallback simulation (when database is offline or unconfigured)
+  // 3. Fallback simulation (when database is offline or unconfigured in development/test)
+  if (process.env.NODE_ENV === 'production') {
+    return {
+      success: false,
+      inquiryNumber: '',
+      isPersisted: false,
+      isDemo: false,
+      message: 'Database persistence is not configured on this environment.',
+    };
+  }
+
   return {
     success: true,
     inquiryNumber: generatedInquiryNum,

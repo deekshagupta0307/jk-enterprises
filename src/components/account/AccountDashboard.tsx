@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AuthenticatedUserSession } from '@/lib/auth/session';
 import { logoutCustomerAction, requestWholesaleApprovalAction } from '@/lib/auth/accountActions';
+import { CustomerOrderSummary } from '@/lib/orders/orderService';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -11,9 +13,15 @@ import { RAJASTHAN_DISTRICTS } from '@/lib/config/businessConfig';
 
 export interface AccountDashboardProps {
   session: AuthenticatedUserSession;
+  initialOrders?: CustomerOrderSummary[];
+  ordersError?: string | null;
 }
 
-export const AccountDashboard: React.FC<AccountDashboardProps> = ({ session }) => {
+export const AccountDashboard: React.FC<AccountDashboardProps> = ({
+  session,
+  initialOrders = [],
+  ordersError = null,
+}) => {
   const router = useRouter();
   const [logoutLoading, setLogoutLoading] = useState(false);
 
@@ -28,6 +36,7 @@ export const AccountDashboard: React.FC<AccountDashboardProps> = ({ session }) =
   const [wsSuccess, setWsSuccess] = useState<string | null>(null);
 
   const { user, profile } = session;
+  const orders = initialOrders;
 
   const handleLogout = async () => {
     setLogoutLoading(true);
@@ -214,7 +223,173 @@ export const AccountDashboard: React.FC<AccountDashboardProps> = ({ session }) =
         </div>
       </div>
 
-      {/* 3. Server Authorization Matrix / Active Privileges */}
+      {/* 3. Customer Order History & Tracking */}
+      <div className="p-6 sm:p-8 bg-white rounded-3xl border border-slate-200/90 shadow-sm space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xl" aria-hidden="true">📦</span>
+              <h2 className="text-lg sm:text-xl font-extrabold text-slate-950 tracking-tight">
+                Order History &amp; Procurement Tracking
+              </h2>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Track processing status, payment verification, and download formal proforma or tax invoices for your purchases.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {!ordersError && (
+              <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+                {orders.length} {orders.length === 1 ? 'Order' : 'Orders'} Total
+              </span>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.refresh()}
+              className="text-xs font-semibold cursor-pointer"
+            >
+              ↻ Refresh
+            </Button>
+          </div>
+        </div>
+
+        {ordersError ? (
+          <div className="py-8 px-6 rounded-2xl bg-amber-50/90 border border-amber-200 text-center space-y-3 my-2">
+            <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto text-xl font-bold">
+              ⚠️
+            </div>
+            <div className="space-y-1">
+              <h3 className="font-bold text-amber-900 text-sm">Order History Temporarily Unavailable</h3>
+              <p className="text-xs text-amber-700 max-w-md mx-auto leading-relaxed">
+                {ordersError}
+              </p>
+            </div>
+            <div className="pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.refresh()}
+                className="text-xs font-semibold bg-white border-amber-300 text-amber-900 hover:bg-amber-100 cursor-pointer"
+              >
+                ↻ Retry Loading Orders
+              </Button>
+            </div>
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="py-12 text-center space-y-3">
+            <div className="w-16 h-16 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto text-2xl">
+              📦
+            </div>
+            <h3 className="font-bold text-slate-900 text-sm">No orders placed under this account yet</h3>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              Once you place an order for computer hardware, storage, or equipment, tracking details and proforma/tax invoices will appear here.
+            </p>
+            <div className="pt-2">
+              <Link
+                href="/catalogue"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+              >
+                Browse Product Catalogue →
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px]">
+                  <th className="pb-3">Reference / Order ID</th>
+                  <th className="pb-3">Date</th>
+                  <th className="pb-3">Payment Method</th>
+                  <th className="pb-3">Status</th>
+                  <th className="pb-3 text-right">Items</th>
+                  <th className="pb-3 text-right">Amount</th>
+                  <th className="pb-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {orders.map((ord) => {
+                  const displayRef = ord.confirmedOrderNumber || ord.orderNumber;
+                  const formattedDate = new Date(ord.createdAt).toLocaleDateString('en-IN', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                  });
+                  const orderUrl = `/orders/${ord.orderNumber}`;
+
+                  const statusVariant =
+                    ord.paymentStatus === 'CONFIRMED' || ord.paymentStatus === 'PAID'
+                      ? 'primary'
+                      : ord.paymentStatus === 'PAYMENT_UNDER_VERIFICATION'
+                        ? 'primary'
+                        : ord.paymentStatus === 'PAYMENT_REJECTED'
+                          ? 'danger'
+                          : 'warning';
+
+                  const statusLabel =
+                    ord.paymentStatus === 'CONFIRMED' || ord.paymentStatus === 'PAID'
+                      ? 'Confirmed / Paid'
+                      : ord.paymentStatus === 'PAYMENT_UNDER_VERIFICATION'
+                        ? 'Verification Pending'
+                        : ord.paymentStatus === 'PAYMENT_REJECTED'
+                          ? 'Payment Rejected'
+                          : 'Awaiting Payment';
+
+                  return (
+                    <tr key={ord.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3.5 pr-2">
+                        <span className="font-mono font-bold text-slate-900 block text-xs">
+                          {displayRef}
+                        </span>
+                        {ord.confirmedOrderNumber ? (
+                          <span className="text-[10px] text-emerald-700 font-semibold block">
+                            Confirmed Order
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-amber-700 font-medium block">
+                            Attempt Ref ({ord.orderNumber.slice(-8)})
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3.5 text-slate-600 font-medium">
+                        {formattedDate}
+                      </td>
+                      <td className="py-3.5 text-slate-700">
+                        {ord.paymentMethod === 'MANUAL_BANK_TRANSFER'
+                          ? 'Bank Transfer (NEFT)'
+                          : 'UPI QR Code'}
+                      </td>
+                      <td className="py-3.5">
+                        <Badge variant={statusVariant} size="sm">
+                          {statusLabel}
+                        </Badge>
+                      </td>
+                      <td className="py-3.5 text-right font-medium text-slate-700">
+                        {ord.itemsCount} {ord.itemsCount === 1 ? 'item' : 'items'}
+                      </td>
+                      <td className="py-3.5 text-right font-mono font-black text-slate-950">
+                        ₹{ord.totalAmountINR.toLocaleString('en-IN')}
+                      </td>
+                      <td className="py-3.5 text-right pl-2">
+                        <Link
+                          href={orderUrl}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 text-[11px] font-bold transition-all cursor-pointer"
+                        >
+                          <span>Track &amp; Invoice</span>
+                          <span>→</span>
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* 4. Server Authorization Matrix / Active Privileges */}
       <div className="p-6 bg-slate-900 text-white rounded-3xl shadow-lg border border-slate-800">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-lg" aria-hidden="true">🛡️</span>
@@ -254,6 +429,28 @@ export const AccountDashboard: React.FC<AccountDashboardProps> = ({ session }) =
               {user.role === 'ADMIN' ? '✓ Full Admin' : user.role === 'STAFF' ? '✓ Staff Access' : '✕ Restricted'}
             </span>
             <span className="text-[10px] text-slate-400">Administrative oversight</span>
+            {user.role === 'ADMIN' || user.role === 'STAFF' ? (
+              <div className="pt-2 mt-2 border-t border-slate-700/80 space-y-1">
+                <div>
+                  <Link
+                    href="/admin/orders"
+                    className="inline-flex items-center gap-1 text-[11px] text-amber-400 hover:text-amber-300 font-bold"
+                  >
+                    <span>Open Admin Orders Queue</span>
+                    <span>→</span>
+                  </Link>
+                </div>
+                <div>
+                  <Link
+                    href="/admin/catalogue"
+                    className="inline-flex items-center gap-1 text-[11px] text-amber-400 hover:text-amber-300 font-bold"
+                  >
+                    <span>Open Catalogue Review Desk</span>
+                    <span>→</span>
+                  </Link>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

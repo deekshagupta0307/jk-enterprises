@@ -24,6 +24,7 @@ export interface ProductDemo {
   inStockDemo: boolean;
   warrantyDemo: string;
   imageUrl?: string;
+  slug?: string;
 }
 
 export interface ChatMessage {

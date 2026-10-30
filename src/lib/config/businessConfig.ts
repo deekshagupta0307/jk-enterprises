@@ -18,6 +18,7 @@ export interface BankAccountDetails {
   branch: string;
   accountType: string;
   isPlaceholder: boolean;
+  isConfigured: boolean;
 }
 
 export interface UpiPaymentDetails {
@@ -26,6 +27,7 @@ export interface UpiPaymentDetails {
   qrCodeUrl: string;
   merchantCode?: string;
   isPlaceholder: boolean;
+  isConfigured: boolean;
 }
 
 export interface BusinessDetails {
@@ -53,7 +55,36 @@ export interface DeliveryRule {
   minOrderForFreeDeliveryINR: number;
   standardDeliveryFeeINR: number;
   estimatedDeliveryTimeline: string;
+  isRatesConfirmed: boolean;
 }
+
+export const DELIVERY_NOTICE =
+  'Delivery fees, free-delivery thresholds, and district transport estimates are preliminary commercial figures subject to confirmation by JK Enterprises prior to dispatch. Regional logistics across Rajasthan districts are coordinated via third-party road transport and express couriers.';
+
+export const PAYMENT_UNCONFIGURED_NOTICE =
+  'Verified payment instructions will be provided after order confirmation.';
+
+function isPlaceholderValue(val?: string | null): boolean {
+  if (!val) return true;
+  const s = val.trim();
+  return (
+    s.length === 0 ||
+    s.toLowerCase().includes('placeholder') ||
+    s.toLowerCase().includes('to be confirmed') ||
+    s.includes('XXXX') ||
+    s.includes('08AAAAA') ||
+    s.includes('AAAAA0000A')
+  );
+}
+
+const rawGstin = process.env.BUSINESS_GSTIN;
+const isGstinPlaceholder = isPlaceholderValue(rawGstin);
+
+const rawPan = process.env.BUSINESS_PAN;
+const isPanPlaceholder = isPlaceholderValue(rawPan);
+
+const rawAddress = process.env.BUSINESS_ADDRESS;
+const isAddressPlaceholder = isPlaceholderValue(rawAddress);
 
 export const BUSINESS_CONFIG: BusinessDetails = {
   name: 'JK Enterprises',
@@ -61,9 +92,9 @@ export const BUSINESS_CONFIG: BusinessDetails = {
   location: 'Bikaner, Rajasthan, India',
   state: 'Rajasthan',
   city: 'Bikaner',
-  addressLine:
-    process.env.BUSINESS_ADDRESS ||
-    'Bikaner, Rajasthan, India (Registered physical address to be confirmed by owner)',
+  addressLine: isAddressPlaceholder
+    ? 'Bikaner, Rajasthan, India'
+    : rawAddress!.trim(),
   pincode: '334001',
   phone: process.env.BUSINESS_PHONE || '9928769266',
   formattedPhone: '+91 9928769266',
@@ -71,28 +102,43 @@ export const BUSINESS_CONFIG: BusinessDetails = {
   whatsappNumber: process.env.BUSINESS_WHATSAPP_NUMBER || '9928769266',
   whatsappCountryCode: '91',
   whatsappLink: 'https://wa.me/919928769266',
-  gstin: process.env.BUSINESS_GSTIN || '08AAAAA0000A1Z5 (Configuration Placeholder - Owner to confirm GSTIN)',
-  pan: process.env.BUSINESS_PAN || 'AAAAA0000A (Configuration Placeholder - Owner to confirm PAN)',
-  isGstinPlaceholder: !process.env.BUSINESS_GSTIN,
+  gstin: isGstinPlaceholder ? 'Pending verification' : rawGstin!.trim(),
+  pan: isPanPlaceholder ? 'Pending verification' : rawPan!.trim(),
+  isGstinPlaceholder,
 };
+
+const rawUpiId = process.env.PAYMENT_UPI_ID;
+const isUpiPlaceholder = isPlaceholderValue(rawUpiId);
+
+const rawAccountNo = process.env.PAYMENT_BANK_ACCOUNT_NUMBER;
+const rawIfsc = process.env.PAYMENT_BANK_IFSC;
+const rawBankName = process.env.PAYMENT_BANK_NAME;
+const rawBranch = process.env.PAYMENT_BANK_BRANCH;
+
+const isBankPlaceholder =
+  isPlaceholderValue(rawAccountNo) ||
+  isPlaceholderValue(rawIfsc) ||
+  isPlaceholderValue(rawBankName) ||
+  isPlaceholderValue(rawBranch);
 
 export const PAYMENT_CONFIG = {
   upi: {
-    upiId: process.env.PAYMENT_UPI_ID || 'jkenterprises@upi (Configuration Placeholder - Owner to configure)',
-    payeeName: process.env.PAYMENT_PAYEE_NAME || 'JK Enterprises (Sales Desk)',
+    upiId: isUpiPlaceholder ? '' : rawUpiId!.trim(),
+    payeeName: process.env.PAYMENT_PAYEE_NAME || 'JK Enterprises',
     qrCodeUrl: process.env.PAYMENT_UPI_QR_URL || '',
-    isPlaceholder: !process.env.PAYMENT_UPI_ID,
+    isPlaceholder: isUpiPlaceholder,
+    isConfigured: !isUpiPlaceholder,
   } as UpiPaymentDetails,
 
   bank: {
     accountName: process.env.PAYMENT_BANK_ACCOUNT_NAME || 'JK Enterprises',
-    accountNumber:
-      process.env.PAYMENT_BANK_ACCOUNT_NUMBER || 'XXXXXXXXXXXX1234 (Configuration Placeholder - Owner to configure)',
-    ifscCode: process.env.PAYMENT_BANK_IFSC || 'SBIN000XXXX (Configuration Placeholder - Owner to configure)',
-    bankName: process.env.PAYMENT_BANK_NAME || 'State Bank of India (SBI)',
-    branch: process.env.PAYMENT_BANK_BRANCH || 'Bikaner Branch, Rajasthan',
+    accountNumber: isBankPlaceholder ? '' : rawAccountNo!.trim(),
+    ifscCode: isBankPlaceholder ? '' : rawIfsc!.trim(),
+    bankName: isBankPlaceholder ? '' : rawBankName!.trim(),
+    branch: isBankPlaceholder ? '' : rawBranch!.trim(),
     accountType: 'Current Account',
-    isPlaceholder: !process.env.PAYMENT_BANK_ACCOUNT_NUMBER,
+    isPlaceholder: isBankPlaceholder,
+    isConfigured: !isBankPlaceholder,
   } as BankAccountDetails,
 
   instructions: [
@@ -162,6 +208,7 @@ export const DELIVERY_RULES: Record<'BIKANER_LOCAL' | 'RAJASTHAN_REGIONAL' | 'IN
     minOrderForFreeDeliveryINR: 5000,
     standardDeliveryFeeINR: 150,
     estimatedDeliveryTimeline: 'Same-day or next business day local delivery (Bikaner Hub)',
+    isRatesConfirmed: false,
   },
   RAJASTHAN_REGIONAL: {
     zoneName: 'Rajasthan Regional Courier & Road Freight',
@@ -169,6 +216,7 @@ export const DELIVERY_RULES: Record<'BIKANER_LOCAL' | 'RAJASTHAN_REGIONAL' | 'IN
     minOrderForFreeDeliveryINR: 15000,
     standardDeliveryFeeINR: 350,
     estimatedDeliveryTimeline: '2 to 4 business days via regional express logistics',
+    isRatesConfirmed: false,
   },
   INTERSTATE: {
     zoneName: 'Interstate / All-India Road Transport',
@@ -176,5 +224,6 @@ export const DELIVERY_RULES: Record<'BIKANER_LOCAL' | 'RAJASTHAN_REGIONAL' | 'IN
     minOrderForFreeDeliveryINR: 30000,
     standardDeliveryFeeINR: 650,
     estimatedDeliveryTimeline: '4 to 7 business days via surface cargo',
+    isRatesConfirmed: false,
   },
 };

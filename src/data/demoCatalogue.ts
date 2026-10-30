@@ -70,6 +70,7 @@ export const DEMO_CATEGORIES: ProductCategory[] = [
 export const DEMO_FEATURED_PRODUCTS: ProductDemo[] = [
   {
     id: 'demo-prod-1',
+    slug: 'samsung-990-pro-1tb-pcie-4-nvme-ssd',
     name: 'Samsung 990 PRO 1TB PCIe 4.0 NVMe M.2 SSD',
     brand: 'Samsung',
     category: 'Storage & SSDs',
@@ -92,6 +93,7 @@ export const DEMO_FEATURED_PRODUCTS: ProductDemo[] = [
   },
   {
     id: 'demo-prod-2',
+    slug: 'intel-core-i7-14700-desktop-processor',
     name: 'Intel Core i7-14700 Desktop Processor (20 Cores, 28 Threads)',
     brand: 'Intel',
     category: 'Processors & CPUs',
@@ -113,6 +115,7 @@ export const DEMO_FEATURED_PRODUCTS: ProductDemo[] = [
   },
   {
     id: 'demo-prod-3',
+    slug: 'corsair-vengeance-32gb-2x16gb-ddr5-6000mhz',
     name: 'Corsair Vengeance 32GB (2x16GB) DDR5 6000MHz CL36 RAM',
     brand: 'Corsair',
     category: 'RAM & Memory',
@@ -133,6 +136,7 @@ export const DEMO_FEATURED_PRODUCTS: ProductDemo[] = [
   },
   {
     id: 'demo-prod-4',
+    slug: 'tp-link-tl-sg1024d-24-port-gigabit-rackmount-switch',
     name: 'TP-Link TL-SG1024D 24-Port Gigabit Ethernet Rackmount Switch',
     brand: 'TP-Link',
     category: 'Networking & WiFi',
@@ -153,6 +157,7 @@ export const DEMO_FEATURED_PRODUCTS: ProductDemo[] = [
   },
   {
     id: 'demo-prod-5',
+    slug: 'hikvision-4mp-colorvu-poe-fixed-bullet-camera',
     name: 'Hikvision 4MP ColorVu Fixed Bullet IP Camera (PoE)',
     brand: 'Hikvision',
     category: 'CCTV & Security',
@@ -173,6 +178,7 @@ export const DEMO_FEATURED_PRODUCTS: ProductDemo[] = [
   },
   {
     id: 'demo-prod-6',
+    slug: 'hp-laserjet-pro-m404dn-monochrome-duplex-printer',
     name: 'HP LaserJet Pro M404dn Monochrome Network Printer',
     brand: 'HP',
     category: 'Printers & Toners',
@@ -193,6 +199,7 @@ export const DEMO_FEATURED_PRODUCTS: ProductDemo[] = [
   },
   {
     id: 'demo-prod-7',
+    slug: 'dell-27-inch-p2723d-qhd-ips-monitor',
     name: 'Dell 27-inch P2723D QHD IPS Productivity Monitor',
     brand: 'Dell',
     category: 'Monitors & Peripherals',
@@ -213,6 +220,7 @@ export const DEMO_FEATURED_PRODUCTS: ProductDemo[] = [
   },
   {
     id: 'demo-prod-8',
+    slug: 'crucial-p3-plus-2tb-pcie-4-nvme-ssd',
     name: 'Crucial P3 Plus 2TB PCIe 4.0 3D NAND NVMe M.2 SSD',
     brand: 'Crucial',
     category: 'Storage & SSDs',

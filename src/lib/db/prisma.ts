@@ -7,7 +7,57 @@ declare global {
 
 export function isDatabaseConfigured(): boolean {
   const url = process.env.DATABASE_URL;
-  return Boolean(url && url.trim().length > 0 && !url.includes('placeholder'));
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  if (trimmed.length === 0) return false;
+  if (!trimmed.startsWith('postgresql://') && !trimmed.startsWith('postgres://')) return false;
+  if (
+    trimmed.includes('YOUR_PASSWORD') ||
+    trimmed.includes('placeholder') ||
+    trimmed.includes('replace-with') ||
+    trimmed.includes('example.com')
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Safely sanitizes database error messages and connection strings,
+ * ensuring no credentials, passwords, or connection URIs are exposed.
+ */
+export function sanitizeDatabaseError(error: unknown): string {
+  if (!error) return 'Unknown database error';
+  const rawMsg = error instanceof Error ? error.message : String(error);
+  return rawMsg
+    .replace(/postgres(?:ql)?:\/\/[^@\s'"]+@/gi, 'postgresql://***:***@')
+    .replace(/(:|\/\/)([^:]+):([^@]+)@/g, '$1***:***@')
+    .replace(/password(=|:\s*)[^;&\s]+/gi, 'password$1***');
+}
+
+/**
+ * Safely verifies that PostgreSQL is reachable by executing a lightweight ping query (`SELECT 1`).
+ * Returns `{ connected: true }` on success, or `{ connected: false, error: string }` on failure.
+ * Database credentials in error messages are safely sanitized.
+ */
+export async function checkDatabaseConnectivity(timeoutMs: number = 8000): Promise<{ connected: boolean; error?: string }> {
+  if (!isDatabaseConfigured()) {
+    return {
+      connected: false,
+      error: 'DATABASE_URL is not configured or contains placeholder credentials in environment.',
+    };
+  }
+  try {
+    const client = getPrismaClient();
+    const pingPromise = client.$queryRaw`SELECT 1`;
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`Database connection timed out after ${timeoutMs}ms`)), timeoutMs)
+    );
+    await Promise.race([pingPromise, timeoutPromise]);
+    return { connected: true };
+  } catch (err) {
+    return { connected: false, error: sanitizeDatabaseError(err) };
+  }
 }
 
 export function getPrismaClient(): PrismaClient {

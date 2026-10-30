@@ -7,6 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "tsx tests/run_all.ts",
+    "test:db": "tsx tests/postgres_persistence.integration.test.ts",
+    "catalogue:import": "tsx scripts/import_catalogue.ts",
+    "catalogue:dry-run": "tsx scripts/import_catalogue.ts --dry-run",
     "postinstall": "prisma generate",
     "db:seed": "tsx prisma/seed.ts"
   },

@@ -8,6 +8,7 @@ import { calculateOrderBreakdown } from '@/lib/delivery/deliveryService';
 import {
   PAYMENT_CONFIG,
   RAJASTHAN_DISTRICTS,
+  DELIVERY_NOTICE,
 } from '@/lib/config/businessConfig';
 import { submitOrderAction } from '@/lib/orders/orderActions';
 import { Button } from '@/components/ui/Button';
@@ -56,6 +57,7 @@ export const CheckoutForm: React.FC = () => {
   }, [subtotalINR, state, district]);
 
   const copyToClipboard = (text: string, label: string) => {
+    if (!text || text.trim() === '') return;
     navigator.clipboard.writeText(text);
     setCopiedField(label);
     setTimeout(() => setCopiedField(null), 2500);
@@ -526,6 +528,9 @@ export const CheckoutForm: React.FC = () => {
             </span>
             <span className="text-[11px] text-blue-700 font-semibold">{financials.deliveryTimeline}</span>
           </div>
+          <p className="text-[10px] text-slate-400 leading-relaxed">
+            * {DELIVERY_NOTICE}
+          </p>
         </div>
 
         {/* 3. Manual Payment Instructions Screen */}
@@ -556,128 +561,168 @@ export const CheckoutForm: React.FC = () => {
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={() => setPaymentMethod('MANUAL_UPI_QR')}
-              className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex items-center gap-3 ${
-                paymentMethod === 'MANUAL_UPI_QR'
-                  ? 'border-blue-600 bg-blue-50/60 shadow-xs ring-2 ring-blue-500/20'
-                  : 'border-slate-200 bg-white hover:bg-slate-50'
+              disabled={!PAYMENT_CONFIG.upi.isConfigured}
+              onClick={() => PAYMENT_CONFIG.upi.isConfigured && setPaymentMethod('MANUAL_UPI_QR')}
+              className={`p-3.5 rounded-2xl border text-left transition-all flex items-center gap-3 ${
+                !PAYMENT_CONFIG.upi.isConfigured
+                  ? 'opacity-60 cursor-not-allowed border-slate-200 bg-slate-50'
+                  : paymentMethod === 'MANUAL_UPI_QR'
+                  ? 'border-blue-600 bg-blue-50/60 shadow-xs ring-2 ring-blue-500/20 cursor-pointer'
+                  : 'border-slate-200 bg-white hover:bg-slate-50 cursor-pointer'
               }`}
             >
               <span className="text-2xl" aria-hidden="true">📱</span>
               <div>
                 <span className="block text-xs font-bold text-slate-900">UPI QR Code</span>
-                <span className="block text-[10px] text-slate-500">GPay, PhonePe, Paytm, BHIM</span>
+                <span className="block text-[10px] text-slate-500">
+                  {PAYMENT_CONFIG.upi.isConfigured ? 'GPay, PhonePe, Paytm, BHIM' : 'Pending Verification'}
+                </span>
               </div>
             </button>
 
             <button
               type="button"
-              onClick={() => setPaymentMethod('MANUAL_BANK_TRANSFER')}
-              className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex items-center gap-3 ${
-                paymentMethod === 'MANUAL_BANK_TRANSFER'
-                  ? 'border-blue-600 bg-blue-50/60 shadow-xs ring-2 ring-blue-500/20'
-                  : 'border-slate-200 bg-white hover:bg-slate-50'
+              disabled={!PAYMENT_CONFIG.bank.isConfigured}
+              onClick={() => PAYMENT_CONFIG.bank.isConfigured && setPaymentMethod('MANUAL_BANK_TRANSFER')}
+              className={`p-3.5 rounded-2xl border text-left transition-all flex items-center gap-3 ${
+                !PAYMENT_CONFIG.bank.isConfigured
+                  ? 'opacity-60 cursor-not-allowed border-slate-200 bg-slate-50'
+                  : paymentMethod === 'MANUAL_BANK_TRANSFER'
+                  ? 'border-blue-600 bg-blue-50/60 shadow-xs ring-2 ring-blue-500/20 cursor-pointer'
+                  : 'border-slate-200 bg-white hover:bg-slate-50 cursor-pointer'
               }`}
             >
               <span className="text-2xl" aria-hidden="true">🏛️</span>
               <div>
                 <span className="block text-xs font-bold text-slate-900">Bank Transfer</span>
-                <span className="block text-[10px] text-slate-500">NEFT, RTGS, IMPS Current A/c</span>
+                <span className="block text-[10px] text-slate-500">
+                  {PAYMENT_CONFIG.bank.isConfigured ? 'NEFT, RTGS, IMPS Current A/c' : 'Pending Verification'}
+                </span>
               </div>
             </button>
           </div>
 
           {/* PAYMENT DETAILS DISPLAY: UPI QR */}
           {paymentMethod === 'MANUAL_UPI_QR' ? (
-            <div className="p-5 rounded-2xl bg-slate-900 text-white space-y-4">
-              <div className="flex flex-col sm:flex-row items-center gap-5">
-                {/* Visual QR Code Representation */}
-                <div className="w-36 h-36 bg-white rounded-2xl p-2.5 shrink-0 flex flex-col items-center justify-center border-4 border-slate-800 shadow-md">
-                  <div className="w-full h-full border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center p-2 text-center text-slate-800">
-                    <span className="text-2xl mb-1">📱</span>
-                    <span className="text-[10px] font-bold text-blue-900 uppercase tracking-tighter">UPI QR CODE</span>
-                    <span className="text-[9px] text-slate-500 font-mono mt-0.5">Scan to Pay</span>
-                    <span className="text-[10px] font-extrabold text-slate-900 mt-1">
-                      ₹{financials.totalINR.toLocaleString('en-IN')}
+            PAYMENT_CONFIG.upi.isConfigured && PAYMENT_CONFIG.upi.upiId ? (
+              <div className="p-5 rounded-2xl bg-slate-900 text-white space-y-4">
+                <div className="flex flex-col sm:flex-row items-center gap-5">
+                  {/* Visual QR Code Representation */}
+                  <div className="w-36 h-36 bg-white rounded-2xl p-2.5 shrink-0 flex flex-col items-center justify-center border-4 border-slate-800 shadow-md">
+                    <div className="w-full h-full border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center p-2 text-center text-slate-800">
+                      <span className="text-2xl mb-1">📱</span>
+                      <span className="text-[10px] font-bold text-blue-900 uppercase tracking-tighter">UPI QR CODE</span>
+                      <span className="text-[9px] text-slate-500 font-mono mt-0.5">Scan to Pay</span>
+                      <span className="text-[10px] font-extrabold text-slate-900 mt-1">
+                        ₹{financials.totalINR.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 flex-1 text-center sm:text-left">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400">
+                      Official Business UPI ID
+                    </span>
+                    <div className="flex items-center justify-center sm:justify-start gap-2">
+                      <code className="text-xs sm:text-sm font-mono font-bold bg-slate-800 px-3 py-1.5 rounded-xl text-emerald-400 border border-slate-700">
+                        {PAYMENT_CONFIG.upi.upiId}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(PAYMENT_CONFIG.upi.upiId, 'upi')}
+                        className="px-2.5 py-1 text-[11px] font-semibold bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors cursor-pointer"
+                      >
+                        {copiedField === 'upi' ? '✓ Copied' : 'Copy'}
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      Payee Name: <strong className="text-white">{PAYMENT_CONFIG.upi.payeeName}</strong>
+                    </p>
+                    <p className="text-[10px] text-slate-400 leading-relaxed">
+                      Open your UPI app, scan the QR code or paste the UPI ID, enter <strong>₹{financials.totalINR.toLocaleString('en-IN')}</strong>, and complete the transfer.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-5 rounded-2xl bg-slate-900 text-white space-y-2.5">
+                <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
+                  <span>ℹ️</span>
+                  <span>UPI Payment Details Pending Verification</span>
+                </div>
+                <p className="text-xs text-slate-200 font-medium leading-relaxed">
+                  Verified payment instructions will be provided after order confirmation.
+                </p>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Your payment attempt will be recorded safely in our order management system without requiring an immediate transfer. Our commercial sales desk will confirm order details and provide verified payment instructions.
+                </p>
+              </div>
+            )
+          ) : (
+            /* PAYMENT DETAILS DISPLAY: BANK NEFT / RTGS */
+            PAYMENT_CONFIG.bank.isConfigured && PAYMENT_CONFIG.bank.accountNumber ? (
+              <div className="p-5 rounded-2xl bg-slate-900 text-white space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-800 text-xs">
+                  <span className="font-bold text-blue-400">Current Account Details for NEFT / RTGS / IMPS</span>
+                  <span className="text-[10px] text-slate-400">{PAYMENT_CONFIG.bank.bankName}</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Account Beneficiary</span>
+                    <span className="font-bold text-white mt-0.5 block">{PAYMENT_CONFIG.bank.accountName}</span>
+                  </div>
+
+                  <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Account Number</span>
+                      <span className="font-mono font-bold text-emerald-400 mt-0.5 block">{PAYMENT_CONFIG.bank.accountNumber}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(PAYMENT_CONFIG.bank.accountNumber, 'acct')}
+                      className="px-2 py-1 text-[10px] font-semibold bg-slate-700 hover:bg-slate-600 rounded cursor-pointer"
+                    >
+                      {copiedField === 'acct' ? '✓' : 'Copy'}
+                    </button>
+                  </div>
+
+                  <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">IFSC Code</span>
+                      <span className="font-mono font-bold text-emerald-400 mt-0.5 block">{PAYMENT_CONFIG.bank.ifscCode}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(PAYMENT_CONFIG.bank.ifscCode, 'ifsc')}
+                      className="px-2 py-1 text-[10px] font-semibold bg-slate-700 hover:bg-slate-600 rounded cursor-pointer"
+                    >
+                      {copiedField === 'ifsc' ? '✓' : 'Copy'}
+                    </button>
+                  </div>
+
+                  <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Branch & Type</span>
+                    <span className="font-medium text-slate-300 mt-0.5 block">
+                      {PAYMENT_CONFIG.bank.branch} ({PAYMENT_CONFIG.bank.accountType})
                     </span>
                   </div>
                 </div>
-
-                <div className="space-y-2 flex-1 text-center sm:text-left">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400">
-                    Official Business UPI ID
-                  </span>
-                  <div className="flex items-center justify-center sm:justify-start gap-2">
-                    <code className="text-xs sm:text-sm font-mono font-bold bg-slate-800 px-3 py-1.5 rounded-xl text-emerald-400 border border-slate-700">
-                      {PAYMENT_CONFIG.upi.upiId}
-                    </code>
-                    <button
-                      type="button"
-                      onClick={() => copyToClipboard(PAYMENT_CONFIG.upi.upiId, 'upi')}
-                      className="px-2.5 py-1 text-[11px] font-semibold bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors cursor-pointer"
-                    >
-                      {copiedField === 'upi' ? '✓ Copied' : 'Copy'}
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-slate-400">
-                    Payee Name: <strong className="text-white">{PAYMENT_CONFIG.upi.payeeName}</strong>
-                  </p>
-                  <p className="text-[10px] text-slate-400 leading-relaxed">
-                    Open your UPI app, scan the QR code or paste the UPI ID, enter <strong>₹{financials.totalINR.toLocaleString('en-IN')}</strong>, and complete the transfer.
-                  </p>
-                </div>
               </div>
-            </div>
-          ) : (
-            /* PAYMENT DETAILS DISPLAY: BANK NEFT / RTGS */
-            <div className="p-5 rounded-2xl bg-slate-900 text-white space-y-4">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800 text-xs">
-                <span className="font-bold text-blue-400">Current Account Details for NEFT / RTGS / IMPS</span>
-                <span className="text-[10px] text-slate-400">State Bank of India</span>
+            ) : (
+              <div className="p-5 rounded-2xl bg-slate-900 text-white space-y-2.5">
+                <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
+                  <span>ℹ️</span>
+                  <span>Bank Remittance Particulars Pending Verification</span>
+                </div>
+                <p className="text-xs text-slate-200 font-medium leading-relaxed">
+                  Verified payment instructions will be provided after order confirmation.
+                </p>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Your payment attempt will be recorded safely without requiring an immediate bank transfer. Our sales desk will verify item specifications and furnish verified current account details for NEFT/RTGS settlement.
+                </p>
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Account Beneficiary</span>
-                  <span className="font-bold text-white mt-0.5 block">{PAYMENT_CONFIG.bank.accountName}</span>
-                </div>
-
-                <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Account Number</span>
-                    <span className="font-mono font-bold text-emerald-400 mt-0.5 block">{PAYMENT_CONFIG.bank.accountNumber}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard(PAYMENT_CONFIG.bank.accountNumber, 'acct')}
-                    className="px-2 py-1 text-[10px] font-semibold bg-slate-700 hover:bg-slate-600 rounded cursor-pointer"
-                  >
-                    {copiedField === 'acct' ? '✓' : 'Copy'}
-                  </button>
-                </div>
-
-                <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block">IFSC Code</span>
-                    <span className="font-mono font-bold text-emerald-400 mt-0.5 block">{PAYMENT_CONFIG.bank.ifscCode}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard(PAYMENT_CONFIG.bank.ifscCode, 'ifsc')}
-                    className="px-2 py-1 text-[10px] font-semibold bg-slate-700 hover:bg-slate-600 rounded cursor-pointer"
-                  >
-                    {copiedField === 'ifsc' ? '✓' : 'Copy'}
-                  </button>
-                </div>
-
-                <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Branch & Type</span>
-                  <span className="font-medium text-slate-300 mt-0.5 block">
-                    {PAYMENT_CONFIG.bank.branch} ({PAYMENT_CONFIG.bank.accountType})
-                  </span>
-                </div>
-              </div>
-            </div>
+            )
           )}
 
           {/* Optional UTR / Reference Input */}
@@ -745,7 +790,7 @@ export const CheckoutForm: React.FC = () => {
 
             <div className="flex justify-between text-slate-600">
               <span>
-                {financials.isInterstate ? 'IGST (18%)' : 'CGST (9%) + SGST (9%)'}
+                {financials.isInterstate ? 'Estimated IGST (Provisional)' : 'Estimated CGST + SGST (Provisional)'}
               </span>
               <span className="font-mono">₹{financials.totalTaxINR.toLocaleString('en-IN')}</span>
             </div>

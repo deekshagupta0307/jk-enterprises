@@ -7,6 +7,10 @@ import {
   DemoSeedCategory,
   DemoSeedBrand,
 } from '../../../prisma/seedData';
+import {
+  IMPORTED_PARENT_CATEGORIES,
+  IMPORTED_SUBCATEGORIES,
+} from '@/data/importedCatalogueData';
 
 export interface CatalogueFilterParams {
   category?: string;
@@ -147,43 +151,56 @@ export async function getCatalogueProducts(
   // 1. Attempt PostgreSQL Query if database is configured
   if (isDatabaseConfigured()) {
     try {
-      const whereClause: Record<string, unknown> = {
-        publicationStatus: { in: ['DEMO', 'PUBLISHED'] },
-      };
+      const andConditions: Record<string, unknown>[] = [
+        { publicationStatus: { in: ['DEMO', 'PUBLISHED'] } },
+      ];
 
       if (params.category && params.category !== 'all') {
-        whereClause.category = { slug: params.category };
+        andConditions.push({
+          OR: [
+            { category: { slug: params.category } },
+            { category: { parent: { slug: params.category } } },
+          ],
+        });
       }
 
       if (params.brand && params.brand !== 'all') {
-        whereClause.brand = { slug: params.brand };
+        andConditions.push({ brand: { slug: params.brand } });
       }
 
       if (params.q && params.q.trim()) {
         const query = params.q.trim();
-        whereClause.OR = [
-          { name: { contains: query, mode: 'insensitive' } },
-          { description: { contains: query, mode: 'insensitive' } },
-          { sku: { contains: query, mode: 'insensitive' } },
-          { modelNumber: { contains: query, mode: 'insensitive' } },
-        ];
+        andConditions.push({
+          OR: [
+            { name: { contains: query, mode: 'insensitive' } },
+            { description: { contains: query, mode: 'insensitive' } },
+            { sku: { contains: query, mode: 'insensitive' } },
+            { modelNumber: { contains: query, mode: 'insensitive' } },
+          ],
+        });
       }
 
       if (params.minPrice !== undefined || params.maxPrice !== undefined) {
-        whereClause.demoPriceINR = {
-          gte: params.minPrice !== undefined ? params.minPrice : 0,
-          lte: params.maxPrice !== undefined ? params.maxPrice : 1000000,
-        };
+        andConditions.push({
+          demoPriceINR: {
+            gte: params.minPrice !== undefined ? params.minPrice : 0,
+            lte: params.maxPrice !== undefined ? params.maxPrice : 1000000,
+          },
+        });
       }
 
       if (params.specKey && params.specValue) {
-        whereClause.specifications = {
-          some: {
-            key: params.specKey,
-            value: params.specValue,
+        andConditions.push({
+          specifications: {
+            some: {
+              key: params.specKey,
+              value: params.specValue,
+            },
           },
-        };
+        });
       }
+
+      const whereClause = { AND: andConditions };
 
       let orderBy: Record<string, string> = { createdAt: 'desc' };
       if (params.sort === 'price_asc') orderBy = { demoPriceINR: 'asc' };
@@ -279,9 +296,14 @@ export async function getCatalogueProducts(
   // 2. Fallback: Filter and paginate in-memory across the 55-item seed dataset
   let filtered = SEED_PRODUCTS.map(mapSeedToView);
 
-  // Category filter
+  // Category filter with parent hierarchy support
   if (params.category && params.category !== 'all') {
-    filtered = filtered.filter((p) => p.categorySlug === params.category);
+    const matchingSubSlugs = IMPORTED_SUBCATEGORIES
+      .filter((s) => s.parentSlug === params.category)
+      .map((s) => s.slug);
+    filtered = filtered.filter(
+      (p) => p.categorySlug === params.category || matchingSubSlugs.includes(p.categorySlug)
+    );
   }
 
   // Brand filter
@@ -334,6 +356,36 @@ export async function getCatalogueProducts(
   const startIndex = (page - 1) * limit;
   const paginatedProducts = filtered.slice(startIndex, startIndex + limit);
 
+  // Combine seed categories and imported category tree for rich navigation
+  const combinedCategories: DemoSeedCategory[] = [...SEED_CATEGORIES];
+  const existingCatSlugs = new Set(SEED_CATEGORIES.map((c) => c.slug));
+
+  for (const parent of IMPORTED_PARENT_CATEGORIES) {
+    if (!existingCatSlugs.has(parent.slug)) {
+      existingCatSlugs.add(parent.slug);
+      combinedCategories.push({
+        id: `cat-${parent.slug}`,
+        name: parent.name,
+        slug: parent.slug,
+        description: parent.description,
+        icon: parent.icon,
+      });
+    }
+  }
+
+  for (const sub of IMPORTED_SUBCATEGORIES) {
+    if (!existingCatSlugs.has(sub.slug)) {
+      existingCatSlugs.add(sub.slug);
+      combinedCategories.push({
+        id: `cat-${sub.slug}`,
+        name: sub.name,
+        slug: sub.slug,
+        description: sub.description,
+        parentId: sub.parentSlug ? `cat-${sub.parentSlug}` : undefined,
+      });
+    }
+  }
+
   return {
     products: paginatedProducts,
     totalCount,
@@ -346,8 +398,168 @@ export async function getCatalogueProducts(
     databaseNotice: databaseError
       ? `PostgreSQL query error (${databaseError}). Falling back to 55 verified demo items from prisma/seedData.ts.`
       : 'PostgreSQL is not configured in this environment (DATABASE_URL absent). Displaying 55 verified demo items from prisma/seedData.ts with full multi-dimensional search, specification filtering, and pagination.',
-    categories: SEED_CATEGORIES,
+    categories: combinedCategories,
     brands: SEED_BRANDS,
     filterableSpecs,
   };
 }
+
+/**
+ * Retrieves a single product by its stable unique slug or fallback ID.
+ * Returns null if not found.
+ */
+export async function getProductBySlug(
+  slug: string
+): Promise<CatalogueProductView | null> {
+  const cleanSlug = (slug || '').trim().toLowerCase();
+  if (!cleanSlug) return null;
+
+  // 1. Attempt PostgreSQL query if database is configured
+  if (isDatabaseConfigured()) {
+    try {
+      const product = await prisma.product.findFirst({
+        where: {
+          OR: [
+            { slug: { equals: cleanSlug, mode: 'insensitive' } },
+            { id: { equals: cleanSlug, mode: 'insensitive' } },
+            { sku: { equals: cleanSlug, mode: 'insensitive' } },
+          ],
+          publicationStatus: { in: ['DEMO', 'PUBLISHED'] },
+        },
+        include: {
+          brand: true,
+          category: true,
+          specifications: true,
+          inventory: true,
+        },
+      });
+
+      if (product) {
+        const onHand = product.inventory?.quantityOnHand || 0;
+        const reserved = product.inventory?.quantityReserved || 0;
+        return {
+          id: product.id,
+          sku: product.sku,
+          slug: product.slug,
+          name: product.name,
+          description: product.description,
+          modelNumber: product.modelNumber || '',
+          brandName: product.brand.name,
+          brandSlug: product.brand.slug,
+          categoryName: product.category.name,
+          categorySlug: product.category.slug,
+          demoPriceINR: Number(product.demoPriceINR || 0),
+          mrpINR: Number(product.mrpINR || 0),
+          isPriceConfirmed: product.isPriceConfirmed,
+          warrantyInfo: product.warrantyInfo || 'Manufacturer Warranty (Sample)',
+          isWarrantyConfirmed: product.isWarrantyConfirmed,
+          isDemo: product.isDemo,
+          publicationStatus: product.publicationStatus,
+          quantityOnHand: onHand,
+          quantityReserved: reserved,
+          availableStock: Math.max(0, onHand - reserved),
+          isStockConfirmed: product.inventory?.isStockConfirmed || false,
+          specifications: product.specifications.map((s) => ({
+            key: s.key,
+            value: s.value,
+            isFilterable: s.isFilterable,
+          })),
+        };
+      }
+    } catch (err) {
+      console.warn('[Catalogue Service] getProductBySlug DB query failed:', err);
+    }
+  }
+
+  // 2. Fallback: Search SEED_PRODUCTS dataset
+  const seedIndex = SEED_PRODUCTS.findIndex(
+    (p, idx) =>
+      p.slug.toLowerCase() === cleanSlug ||
+      p.sku.toLowerCase() === cleanSlug ||
+      `demo-${idx + 1}` === cleanSlug
+  );
+
+  if (seedIndex !== -1) {
+    return mapSeedToView(SEED_PRODUCTS[seedIndex], seedIndex);
+  }
+
+  // Also check DEMO_FEATURED_PRODUCTS for direct id/slug match
+  const { DEMO_FEATURED_PRODUCTS } = await import('@/data/demoCatalogue');
+  const feat = DEMO_FEATURED_PRODUCTS.find(
+    (p) => p.slug?.toLowerCase() === cleanSlug || p.id.toLowerCase() === cleanSlug
+  );
+
+  if (feat) {
+    const matchedSeedIdx = feat.slug ? SEED_PRODUCTS.findIndex((s) => s.slug === feat.slug) : -1;
+    if (matchedSeedIdx !== -1) {
+      return mapSeedToView(SEED_PRODUCTS[matchedSeedIdx], matchedSeedIdx);
+    }
+    // Convert featured demo product to complete CatalogueProductView
+    const specsList: { key: string; value: string; isFilterable: boolean }[] = [];
+    if (feat.fullSpecs) {
+      for (const [key, value] of Object.entries(feat.fullSpecs)) {
+        specsList.push({ key, value, isFilterable: true });
+      }
+    } else if (feat.shortSpecs) {
+      for (const s of feat.shortSpecs) {
+        const parts = s.split(':');
+        specsList.push({
+          key: parts.length > 1 ? parts[0].trim() : 'Parameter',
+          value: parts.length > 1 ? parts.slice(1).join(':').trim() : s.trim(),
+          isFilterable: true,
+        });
+      }
+    }
+
+    return {
+      id: feat.id,
+      sku: feat.id.toUpperCase(),
+      slug: feat.slug || feat.id,
+      name: feat.name,
+      description: feat.shortSpecs ? feat.shortSpecs.join(' • ') : feat.name,
+      modelNumber: feat.id,
+      brandName: feat.brand || 'Commercial Grade',
+      brandSlug: feat.brand?.toLowerCase().replace(/\s+/g, '-') || 'general',
+      categoryName: feat.category,
+      categorySlug: feat.categorySlug || feat.category.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      demoPriceINR: feat.demoPriceINR,
+      mrpINR: feat.mrpINR || Math.round(feat.demoPriceINR * 1.15),
+      isPriceConfirmed: false,
+      warrantyInfo: feat.warrantyDemo || 'Standard Manufacturer Warranty (Sample)',
+      isWarrantyConfirmed: false,
+      isDemo: true,
+      publicationStatus: 'DEMO',
+      quantityOnHand: feat.inStockDemo ? 10 : 0,
+      quantityReserved: 0,
+      availableStock: feat.inStockDemo ? 10 : 0,
+      isStockConfirmed: false,
+      specifications: specsList,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Returns all available product slugs for static generation, sitemap, and routing.
+ */
+export async function getAllProductSlugs(): Promise<string[]> {
+  if (isDatabaseConfigured()) {
+    try {
+      const products = await prisma.product.findMany({
+        select: { slug: true },
+        where: { publicationStatus: { in: ['DEMO', 'PUBLISHED'] } },
+      });
+      if (products.length > 0) {
+        return products.map((p) => p.slug);
+      }
+    } catch {
+      // Fallback to seed data
+    }
+  }
+  const seedSlugs = SEED_PRODUCTS.map((p) => p.slug);
+  const { DEMO_FEATURED_PRODUCTS } = await import('@/data/demoCatalogue');
+  const featSlugs = DEMO_FEATURED_PRODUCTS.map((p) => p.slug || p.id).filter(Boolean);
+  return Array.from(new Set([...seedSlugs, ...featSlugs]));
+}
+

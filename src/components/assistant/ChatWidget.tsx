@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { ChatMessage, ProductDemo } from '@/types';
 import { queryAssistantDemo } from '@/lib/assistant/assistantService';
-import { ProductQuickViewModal } from '@/components/products/ProductQuickViewModal';
 
 export interface ChatWidgetProps {
   onQuickViewProduct?: (product: ProductDemo) => void;
@@ -55,11 +55,10 @@ const RobotIcon: React.FC<{ isScanning?: boolean; className?: string }> = ({ isS
   </svg>
 );
 
-export const ChatWidget: React.FC<ChatWidgetProps> = ({ onQuickViewProduct }) => {
+export const ChatWidget: React.FC<ChatWidgetProps> = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [inputVal, setInputVal] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<ProductDemo | null>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
@@ -89,14 +88,12 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onQuickViewProduct }) =>
 
   const handleEscapeKey = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') {
-      if (selectedProduct) {
-        setSelectedProduct(null);
-      } else if (isOpen) {
+      if (isOpen) {
         setIsOpen(false);
         triggerRef.current?.focus();
       }
     }
-  }, [selectedProduct, isOpen]);
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -159,13 +156,6 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onQuickViewProduct }) =>
     setInputVal('');
   };
 
-  const handleProductClick = (product: ProductDemo) => {
-    if (onQuickViewProduct) {
-      onQuickViewProduct(product);
-    } else {
-      setSelectedProduct(product);
-    }
-  };
 
   const showNameReveal = !isOpen && (isHovered || isFocused);
 
@@ -273,13 +263,13 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onQuickViewProduct }) =>
                                   ₹{p.demoPriceINR.toLocaleString('en-IN')}
                                 </p>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => handleProductClick(p)}
+                              <Link
+                                href={`/products/${p.slug || p.id}`}
+                                onClick={() => setIsOpen(false)}
                                 className="px-2 py-1 bg-white hover:bg-blue-600 hover:text-white border border-slate-300 text-slate-700 rounded-md text-[10px] font-semibold shrink-0 transition-colors cursor-pointer"
                               >
-                                View Specs
-                              </button>
+                                View Details →
+                              </Link>
                             </div>
                           ))}
                         </div>
@@ -384,12 +374,6 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onQuickViewProduct }) =>
           </button>
         </div>
       </div>
-
-      {/* Internal Quick Specs Modal if triggered from chat */}
-      <ProductQuickViewModal
-        product={selectedProduct}
-        onClose={() => setSelectedProduct(null)}
-      />
     </>
   );
 };

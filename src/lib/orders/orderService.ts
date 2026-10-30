@@ -10,6 +10,8 @@ import {
   OrderStatus,
   PaymentMethod,
   InvoiceType,
+  SystemRole,
+  WholesaleApprovalStatus,
 } from '@prisma/client';
 import { AuthenticatedUserSession } from '@/lib/auth/session';
 import { AuthorizationError, verifySupportAccess } from '@/lib/auth/authorization';
@@ -382,11 +384,27 @@ export async function placeCustomerOrder(
 
       return { success: true, order: orderView };
     } catch (err) {
-      console.warn('[Order Persistence Error, falling back to simulated session order]:', err);
+      console.warn('[Order Persistence Error]:', err);
+      if (process.env.NODE_ENV === 'production') {
+        return {
+          success: false,
+          error:
+            'Order persistence failed: unable to record order in the database. Please try again or contact support.',
+        };
+      }
     }
   }
 
   // 7. Fallback Simulation (Database Unconfigured / Offline Sandbox)
+  // In production, real customer orders MUST be durably persisted. Block simulation in production:
+  if (process.env.NODE_ENV === 'production') {
+    return {
+      success: false,
+      error:
+        'Database persistence is not configured on this environment (DATABASE_URL is missing or unverified). Real customer orders cannot be placed.',
+    };
+  }
+
   const simulatedOrder: OrderView = {
     id: `sim-${orderNumber}`,
     orderNumber,
@@ -455,7 +473,15 @@ export async function updateOrderPaymentUtr(
     };
   }
 
-  // Update in memory store
+  // Guard: In production, database persistence is mandatory
+  if (process.env.NODE_ENV === 'production' && !isDatabaseConfigured()) {
+    return {
+      success: false,
+      error: 'Database persistence is not configured on this environment. Cannot record payment reference.',
+    };
+  }
+
+  // Update in memory store (for development / test sessions)
   let order = inMemoryOrderStore.get(orderNumber) || null;
   if (!order) {
     for (const val of inMemoryOrderStore.values()) {
@@ -464,13 +490,6 @@ export async function updateOrderPaymentUtr(
         break;
       }
     }
-  }
-
-  if (order) {
-    order.paymentReferenceUTR = cleanUtr;
-    order.paymentStatus = OrderStatus.PAYMENT_UNDER_VERIFICATION;
-    if (notes) order.paymentNotes = notes.slice(0, 500);
-    order.updatedAt = new Date();
   }
 
   if (isDatabaseConfigured()) {
@@ -482,13 +501,93 @@ export async function updateOrderPaymentUtr(
           paymentStatus: OrderStatus.PAYMENT_UNDER_VERIFICATION,
           paymentNotes: notes ? notes.slice(0, 500) : undefined,
         },
+        include: { items: true, invoice: true },
       });
-      if (order) {
-        order.paymentReferenceUTR = updated.paymentReferenceUTR;
-        order.paymentStatus = updated.paymentStatus;
+
+      const financials = calculateOrderBreakdown(
+        Number(updated.subtotalINR),
+        updated.state,
+        updated.district
+      );
+
+      const isConfirmed =
+        updated.paymentStatus === OrderStatus.CONFIRMED ||
+        updated.paymentStatus === OrderStatus.PAID;
+
+      const updatedOrderView: OrderView = {
+        id: updated.id,
+        orderNumber: updated.orderNumber,
+        confirmedOrderNumber: updated.confirmedOrderNumber,
+        isOrderConfirmed: isConfirmed,
+        invoiceNumber:
+          updated.invoice?.invoiceNumber ||
+          (isConfirmed
+            ? `JK-INV-${updated.orderNumber.slice(-8)}`
+            : `JK-PRF-${updated.orderNumber.slice(-8)}`),
+        invoiceType:
+          updated.invoice?.invoiceType ||
+          (isConfirmed ? InvoiceType.TAX_INVOICE : InvoiceType.PROFORMA_INVOICE),
+        userId: updated.userId,
+        customerName: updated.customerName,
+        customerEmail: updated.customerEmail,
+        customerPhone: updated.customerPhone,
+        customerWhatsapp: updated.customerWhatsapp,
+        organizationName: updated.organizationName,
+        gstin: updated.gstin,
+        shippingAddressLine1: updated.shippingAddressLine1,
+        shippingAddressLine2: updated.shippingAddressLine2,
+        district: updated.district,
+        pinCode: updated.pinCode,
+        state: updated.state,
+        paymentMethod: updated.paymentMethod,
+        paymentStatus: updated.paymentStatus,
+        paymentReferenceUTR: updated.paymentReferenceUTR,
+        paymentNotes: updated.paymentNotes,
+        verifiedAt: updated.verifiedAt,
+        verifiedByUserId: updated.verifiedByUserId,
+        verificationNotes: updated.verificationNotes,
+        subtotalINR: Number(updated.subtotalINR),
+        deliveryFeeINR: Number(updated.deliveryFeeINR),
+        taxINR: Number(updated.taxINR),
+        totalAmountINR: Number(updated.totalAmountINR),
+        isDemo: updated.isDemo,
+        isPersisted: true,
+        accessToken: updated.accessToken || '',
+        items: updated.items.map((it) => ({
+          id: it.id,
+          productId: it.productId || it.productSku,
+          productSku: it.productSku,
+          productName: it.productName,
+          brandName: it.brandName,
+          unitPriceINR: Number(it.unitPriceINR),
+          quantity: it.quantity,
+          totalINR: Number(it.totalINR),
+        })),
+        financials,
+        createdAt: updated.createdAt,
+        updatedAt: updated.updatedAt,
+      };
+
+      inMemoryOrderStore.set(updatedOrderView.orderNumber, updatedOrderView);
+      if (updatedOrderView.confirmedOrderNumber) {
+        inMemoryOrderStore.set(updatedOrderView.confirmedOrderNumber, updatedOrderView);
       }
-    } catch {
-      // Ignored if DB offline
+      order = updatedOrderView;
+    } catch (err) {
+      console.warn('[Update UTR Persistence Error]:', err);
+      if (process.env.NODE_ENV === 'production') {
+        return {
+          success: false,
+          error: 'Failed to record payment reference in the database. Please try again or contact support.',
+        };
+      }
+    }
+  } else {
+    if (order) {
+      order.paymentReferenceUTR = cleanUtr;
+      order.paymentStatus = OrderStatus.PAYMENT_UNDER_VERIFICATION;
+      if (notes) order.paymentNotes = notes.slice(0, 500);
+      order.updatedAt = new Date();
     }
   }
 
@@ -522,6 +621,15 @@ export async function verifyAndConfirmPaymentAttempt(
       'FORBIDDEN',
       403
     );
+  }
+
+  // Guard: In production, database persistence is mandatory for payment verification
+  if (process.env.NODE_ENV === 'production' && !isDatabaseConfigured()) {
+    return {
+      success: false,
+      error:
+        'Database persistence is not configured on this environment. Real payments cannot be verified without durable database storage.',
+    };
   }
 
   const { referenceNumber, action, notes } = input;
@@ -588,6 +696,12 @@ export async function verifyAndConfirmPaymentAttempt(
         ]);
       } catch (e) {
         console.error('[Verify Order DB Error]:', e);
+        if (process.env.NODE_ENV === 'production') {
+          return {
+            success: false,
+            error: 'Failed to record payment confirmation in the database.',
+          };
+        }
       }
     }
 
@@ -615,6 +729,12 @@ export async function verifyAndConfirmPaymentAttempt(
         });
       } catch (e) {
         console.error('[Reject Order DB Error]:', e);
+        if (process.env.NODE_ENV === 'production') {
+          return {
+            success: false,
+            error: 'Failed to record payment rejection in the database.',
+          };
+        }
       }
     }
 
@@ -635,23 +755,10 @@ export async function getOrderSecurely(
   accessToken?: string | null,
   session?: AuthenticatedUserSession | null
 ): Promise<OrderView | null> {
-  // 1. Check in-memory store (by attempt orderNumber, confirmedOrderNumber, or invoiceNumber)
-  let order = inMemoryOrderStore.get(identifier) || null;
-  if (!order) {
-    for (const val of inMemoryOrderStore.values()) {
-      if (
-        val.orderNumber === identifier ||
-        val.confirmedOrderNumber === identifier ||
-        val.invoiceNumber === identifier
-      ) {
-        order = val;
-        break;
-      }
-    }
-  }
+  let order: OrderView | null = null;
 
-  // 2. Lookup in DB if configured
-  if (!order && isDatabaseConfigured()) {
+  // 1. Authoritative DB Lookup if PostgreSQL is configured
+  if (isDatabaseConfigured()) {
     try {
       const dbOrder = await prisma.order.findFirst({
         where: {
@@ -739,6 +846,28 @@ export async function getOrderSecurely(
     }
   }
 
+  // 2. In-memory store fallback (Development / Sandbox mode ONLY)
+  if (!order) {
+    order = inMemoryOrderStore.get(identifier) || null;
+    if (!order) {
+      for (const val of inMemoryOrderStore.values()) {
+        if (
+          val.orderNumber === identifier ||
+          val.confirmedOrderNumber === identifier ||
+          val.invoiceNumber === identifier
+        ) {
+          order = val;
+          break;
+        }
+      }
+    }
+  }
+
+  // In production, strictly reject any unpersisted in-memory order
+  if (process.env.NODE_ENV === 'production' && order && !order.isPersisted) {
+    order = null;
+  }
+
   if (!order) {
     return null;
   }
@@ -769,3 +898,347 @@ export async function getOrderSecurely(
     403
   );
 }
+
+// -----------------------------------------------------------------------------
+// Customer Order History (Task 1)
+// -----------------------------------------------------------------------------
+
+export interface CustomerOrderSummary {
+  id: string;
+  orderNumber: string;
+  confirmedOrderNumber?: string | null;
+  isOrderConfirmed: boolean;
+  createdAt: string;
+  paymentStatus: OrderStatus;
+  paymentMethod: PaymentMethod;
+  totalAmountINR: number;
+  itemsCount: number;
+  invoiceNumber?: string | null;
+}
+
+export interface CustomerOrdersResult {
+  success: boolean;
+  orders: CustomerOrderSummary[];
+  error?: string | null;
+}
+
+/**
+ * Retrieves orders strictly belonging to the authenticated customer.
+ * Enforces server-side authentication — never trusts a client-provided user ID.
+ */
+export async function getCustomerOrders(
+  session: AuthenticatedUserSession | null
+): Promise<CustomerOrdersResult> {
+  if (!session?.user?.id) {
+    throw new AuthorizationError(
+      'Authentication required. Please sign in to view your order history.',
+      'UNAUTHENTICATED',
+      401
+    );
+  }
+
+  const userId = session.user.id;
+  const results: CustomerOrderSummary[] = [];
+
+  if (isDatabaseConfigured()) {
+    try {
+      const dbOrders = await prisma.order.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          items: {
+            select: { id: true },
+          },
+          invoice: {
+            select: { invoiceNumber: true },
+          },
+        },
+      });
+
+      for (const order of dbOrders) {
+        const isConfirmed =
+          order.paymentStatus === OrderStatus.CONFIRMED ||
+          order.paymentStatus === OrderStatus.PAID;
+
+        results.push({
+          id: order.id,
+          orderNumber: order.orderNumber,
+          confirmedOrderNumber: order.confirmedOrderNumber,
+          isOrderConfirmed: isConfirmed,
+          createdAt: order.createdAt.toISOString(),
+          paymentStatus: order.paymentStatus,
+          paymentMethod: order.paymentMethod,
+          totalAmountINR: Number(order.totalAmountINR),
+          itemsCount: order.items.length,
+          invoiceNumber: order.invoice?.invoiceNumber || null,
+        });
+      }
+      return { success: true, orders: results };
+    } catch (err) {
+      console.warn('[Get Customer Orders DB Error]:', err instanceof Error ? err.message : err);
+      // In production, fail-closed: do not fall through to inMemoryOrderStore
+      if (process.env.NODE_ENV === 'production') {
+        return {
+          success: false,
+          orders: [],
+          error:
+            'Order history is temporarily unavailable due to a service connection issue. Please try again shortly or contact support at our Bikaner desk.',
+        };
+      }
+    }
+  }
+
+  // Fallback for development/testing in-memory store
+  for (const order of inMemoryOrderStore.values()) {
+    if (order.userId === userId && !results.some((r) => r.orderNumber === order.orderNumber)) {
+      results.push({
+        id: order.id,
+        orderNumber: order.orderNumber,
+        confirmedOrderNumber: order.confirmedOrderNumber,
+        isOrderConfirmed: order.isOrderConfirmed,
+        createdAt:
+          order.createdAt instanceof Date
+            ? order.createdAt.toISOString()
+            : new Date(order.createdAt).toISOString(),
+        paymentStatus: order.paymentStatus,
+        paymentMethod: order.paymentMethod,
+        totalAmountINR: order.totalAmountINR,
+        itemsCount: order.items.length,
+        invoiceNumber: order.invoiceNumber,
+      });
+    }
+  }
+
+  results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return { success: true, orders: results };
+}
+
+// -----------------------------------------------------------------------------
+// Centralized Admin Orders & Payments Queue (Task 2)
+// -----------------------------------------------------------------------------
+
+export interface AdminOrderQueueItem {
+  id: string;
+  orderNumber: string;
+  confirmedOrderNumber?: string | null;
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+  organizationName?: string | null;
+  district: string;
+  state: string;
+  paymentMethod: PaymentMethod;
+  paymentStatus: OrderStatus;
+  paymentReferenceUTR?: string | null;
+  totalAmountINR: number;
+  itemsCount: number;
+  isConfirmed: boolean;
+  createdAt: string;
+  invoiceNumber?: string | null;
+  accessToken?: string | null;
+}
+
+export interface AdminWholesaleApplicationItem {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  organizationName: string;
+  gstin?: string | null;
+  district: string;
+  state: string;
+  wholesaleApprovalStatus: WholesaleApprovalStatus;
+  wholesaleApprovalNotes?: string | null;
+  createdAt: string;
+}
+
+export interface AdminOrdersQueueResult {
+  orders: AdminOrderQueueItem[];
+  wholesaleApplications: AdminWholesaleApplicationItem[];
+  stats: {
+    totalOrders: number;
+    pendingVerification: number;
+    awaitingPayment: number;
+    confirmedOrPaid: number;
+    pendingWholesale: number;
+  };
+}
+
+/**
+ * Retrieves centralized administrative orders and payments queue.
+ * Strictly restricted to authorized STAFF and ADMIN system roles.
+ * Orders requiring payment verification are prioritized first.
+ */
+export async function getAdminOrdersQueue(
+  session: AuthenticatedUserSession | null
+): Promise<AdminOrdersQueueResult> {
+  if (
+    !session ||
+    (session.user.role !== SystemRole.ADMIN && session.user.role !== SystemRole.STAFF)
+  ) {
+    throw new AuthorizationError(
+      'Forbidden: Access restricted strictly to authorized STAFF and ADMIN members.',
+      'FORBIDDEN',
+      403
+    );
+  }
+
+  const rawOrders: AdminOrderQueueItem[] = [];
+  const wholesaleApplications: AdminWholesaleApplicationItem[] = [];
+
+  if (isDatabaseConfigured()) {
+    try {
+      const dbOrders = await prisma.order.findMany({
+        orderBy: { createdAt: 'desc' },
+        include: {
+          items: {
+            select: { id: true },
+          },
+          invoice: {
+            select: { invoiceNumber: true },
+          },
+        },
+      });
+
+      for (const ord of dbOrders) {
+        const isConfirmed =
+          ord.paymentStatus === OrderStatus.CONFIRMED ||
+          ord.paymentStatus === OrderStatus.PAID;
+
+        rawOrders.push({
+          id: ord.id,
+          orderNumber: ord.orderNumber,
+          confirmedOrderNumber: ord.confirmedOrderNumber,
+          customerName: ord.customerName,
+          customerPhone: ord.customerPhone,
+          customerEmail: ord.customerEmail,
+          organizationName: ord.organizationName,
+          district: ord.district,
+          state: ord.state,
+          paymentMethod: ord.paymentMethod,
+          paymentStatus: ord.paymentStatus,
+          paymentReferenceUTR: ord.paymentReferenceUTR,
+          totalAmountINR: Number(ord.totalAmountINR),
+          itemsCount: ord.items.length,
+          isConfirmed,
+          createdAt: ord.createdAt.toISOString(),
+          invoiceNumber: ord.invoice?.invoiceNumber || null,
+          accessToken: ord.accessToken || null,
+        });
+      }
+
+      // Fetch pending wholesale reseller applications
+      const dbWholesale = await prisma.customerProfile.findMany({
+        where: {
+          wholesaleApprovalStatus: WholesaleApprovalStatus.PENDING,
+        },
+        include: {
+          user: {
+            select: { name: true, email: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      for (const ws of dbWholesale) {
+        wholesaleApplications.push({
+          id: ws.id,
+          userId: ws.userId,
+          userName: ws.user.name,
+          userEmail: ws.user.email,
+          organizationName: ws.organizationName || 'Not Provided',
+          gstin: ws.gstin,
+          district: ws.district || 'Bikaner',
+          state: ws.state,
+          wholesaleApprovalStatus: ws.wholesaleApprovalStatus,
+          wholesaleApprovalNotes: ws.wholesaleApprovalNotes,
+          createdAt: ws.createdAt.toISOString(),
+        });
+      }
+    } catch (err) {
+      console.warn('[Get Admin Orders Queue DB Error]:', err instanceof Error ? err.message : err);
+    }
+  } else {
+    // In-memory store fallback for development / offline test runs
+    for (const ord of inMemoryOrderStore.values()) {
+      rawOrders.push({
+        id: ord.id,
+        orderNumber: ord.orderNumber,
+        confirmedOrderNumber: ord.confirmedOrderNumber,
+        customerName: ord.customerName,
+        customerPhone: ord.customerPhone,
+        customerEmail: ord.customerEmail,
+        organizationName: ord.organizationName,
+        district: ord.district,
+        state: ord.state,
+        paymentMethod: ord.paymentMethod,
+        paymentStatus: ord.paymentStatus,
+        paymentReferenceUTR: ord.paymentReferenceUTR,
+        totalAmountINR: ord.totalAmountINR,
+        itemsCount: ord.items.length,
+        isConfirmed: ord.isOrderConfirmed,
+        createdAt:
+          ord.createdAt instanceof Date
+            ? ord.createdAt.toISOString()
+            : new Date(ord.createdAt).toISOString(),
+        invoiceNumber: ord.invoiceNumber,
+        accessToken: ord.accessToken,
+      });
+    }
+  }
+
+  // Priority sorting:
+  // 1. PAYMENT_UNDER_VERIFICATION (Immediate staff attention required)
+  // 2. AWAITING_PAYMENT, PENDING_PAYMENT
+  // 3. CONFIRMED, PAID, PROCESSING, SHIPPED, DELIVERED
+  // 4. PAYMENT_REJECTED, CANCELLED
+  const getStatusPriority = (status: OrderStatus): number => {
+    switch (status) {
+      case OrderStatus.PAYMENT_UNDER_VERIFICATION:
+        return 1;
+      case OrderStatus.AWAITING_PAYMENT:
+      case OrderStatus.PENDING_PAYMENT:
+        return 2;
+      case OrderStatus.CONFIRMED:
+      case OrderStatus.PAID:
+      case OrderStatus.PROCESSING:
+      case OrderStatus.SHIPPED:
+      case OrderStatus.DELIVERED:
+        return 3;
+      case OrderStatus.PAYMENT_REJECTED:
+      case OrderStatus.CANCELLED:
+        return 4;
+      default:
+        return 5;
+    }
+  };
+
+  const sortedOrders = [...rawOrders].sort((a, b) => {
+    const priorityDiff = getStatusPriority(a.paymentStatus) - getStatusPriority(b.paymentStatus);
+    if (priorityDiff !== 0) return priorityDiff;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
+  const stats = {
+    totalOrders: sortedOrders.length,
+    pendingVerification: sortedOrders.filter(
+      (o) => o.paymentStatus === OrderStatus.PAYMENT_UNDER_VERIFICATION
+    ).length,
+    awaitingPayment: sortedOrders.filter(
+      (o) =>
+        o.paymentStatus === OrderStatus.AWAITING_PAYMENT ||
+        o.paymentStatus === OrderStatus.PENDING_PAYMENT
+    ).length,
+    confirmedOrPaid: sortedOrders.filter(
+      (o) => o.paymentStatus === OrderStatus.CONFIRMED || o.paymentStatus === OrderStatus.PAID
+    ).length,
+    pendingWholesale: wholesaleApplications.length,
+  };
+
+  return {
+    orders: sortedOrders,
+    wholesaleApplications,
+    stats,
+  };
+}
+

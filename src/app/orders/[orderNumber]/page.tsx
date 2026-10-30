@@ -36,7 +36,7 @@ async function OrderContent({ params, searchParams }: OrderPageProps) {
     notFound();
   }
 
-  if (!order) {
+  if (!order || (process.env.NODE_ENV === 'production' && !order.isPersisted)) {
     notFound();
   }
 

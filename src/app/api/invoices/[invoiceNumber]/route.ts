@@ -19,7 +19,7 @@ export async function GET(request: Request, context: RouteContext) {
     // Order number or invoice number can be used
     const order = await getOrderSecurely(invoiceNumber, token, session);
 
-    if (!order) {
+    if (!order || (process.env.NODE_ENV === 'production' && !order.isPersisted)) {
       return NextResponse.json({ error: 'Invoice not found.' }, { status: 404 });
     }
 
