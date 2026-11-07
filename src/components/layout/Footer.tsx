@@ -128,6 +128,13 @@ export const Footer: React.FC = () => {
                   {BUSINESS_CONFIG.email}
                 </a>
               </p>
+              <div className="pt-2 border-t border-slate-800 text-[11px] text-blue-300">
+                <span className="block font-bold text-white uppercase text-[10px]">Delivery &amp; Dispatch Desk:</span>
+                <a href="tel:+919928769266" className="font-bold underline text-blue-400 hover:text-blue-300">
+                  Call 9928769266
+                </a>
+                <span className="block text-[10px] text-slate-400 mt-0.5">Contact to confirm delivery address, item availability, and dispatch timing.</span>
+              </div>
             </div>
           </div>
         </div>

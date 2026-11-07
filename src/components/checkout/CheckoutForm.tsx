@@ -51,9 +51,9 @@ export const CheckoutForm: React.FC = () => {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  // Dynamic Financials calculation based on subtotal, state and district
+  // Dynamic Financials calculation based on subtotal, state and district with centralized 10% Diwali Offer
   const financials = useMemo(() => {
-    return calculateOrderBreakdown(subtotalINR, state, district);
+    return calculateOrderBreakdown(subtotalINR, state, district, 'DIWALI10');
   }, [subtotalINR, state, district]);
 
   const copyToClipboard = (text: string, label: string) => {
@@ -96,6 +96,7 @@ export const CheckoutForm: React.FC = () => {
     try {
       const res = await submitOrderAction({
         items: items.map((i) => ({ productId: i.id, quantity: i.quantity })),
+        offerCode: 'DIWALI10',
         shipping: {
           customerName,
           email,
@@ -528,6 +529,16 @@ export const CheckoutForm: React.FC = () => {
             </span>
             <span className="text-[11px] text-blue-700 font-semibold">{financials.deliveryTimeline}</span>
           </div>
+          <div className="p-3 bg-blue-50/80 rounded-xl border border-blue-200 text-xs text-blue-900 space-y-1">
+            <div className="font-bold flex items-center gap-1.5">
+              <span>📞</span>
+              <span>Delivery Dispatch &amp; Schedule Coordination</span>
+            </div>
+            <p className="text-[11px] leading-relaxed">
+              Please contact JK Enterprises at <a href="tel:+919928769266" className="font-bold underline text-blue-800">9928769266</a> to confirm delivery address, item availability, and delivery timing.
+            </p>
+          </div>
+
           <p className="text-[10px] text-slate-400 leading-relaxed">
             * {DELIVERY_NOTICE}
           </p>
@@ -783,6 +794,18 @@ export const CheckoutForm: React.FC = () => {
 
           {/* Financials Breakdown */}
           <div className="space-y-2 pt-2 text-xs">
+            <div className="flex justify-between text-slate-600">
+              <span>Gross Items Subtotal</span>
+              <span className="font-mono font-medium">₹{financials.originalSubtotalINR.toLocaleString('en-IN')}</span>
+            </div>
+
+            {financials.discountAmountINR > 0 && (
+              <div className="flex justify-between text-amber-900 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 font-bold">
+                <span>{financials.discountOfferLabel || 'Diwali Festive Sale (10% OFF)'}</span>
+                <span className="font-mono">-₹{financials.discountAmountINR.toLocaleString('en-IN')}</span>
+              </div>
+            )}
+
             <div className="flex justify-between text-slate-600">
               <span>Taxable Subtotal (Base)</span>
               <span className="font-mono">₹{financials.taxableSubtotalINR.toLocaleString('en-IN')}</span>

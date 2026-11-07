@@ -4,6 +4,7 @@ import { runSecurityAndAuthorizationSuite } from './security_and_authorization.t
 import { runDurableDatabaseReadinessTests } from './database_models_and_schema.test';
 import { runTargetedPreproductionCheck } from './payment_safety_and_preproduction.test';
 import { runCatalogueExpansionTests } from './catalogue_expansion_and_import.test';
+import { runPhase3DiwaliAndExpansionTests } from './phase3_diwali_and_expansion.test';
 import { isDatabaseConfigured } from '@/lib/db/prisma';
 
 async function main() {
@@ -21,6 +22,7 @@ async function main() {
     { name: 'Database Models & Schema Readiness Suite', runner: runDurableDatabaseReadinessTests },
     { name: 'Targeted Pre-Production Safety Suite', runner: runTargetedPreproductionCheck },
     { name: 'Catalogue Expansion, Dry Run & Review Suite', runner: runCatalogueExpansionTests },
+    { name: 'Phase 3 Diwali Discount & Expansion Suite', runner: runPhase3DiwaliAndExpansionTests },
   ];
 
   for (const s of suites) {

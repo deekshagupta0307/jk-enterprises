@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/Badge';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { ProductAddToCartSection } from '@/components/products/ProductAddToCartSection';
 import { BUSINESS_CONFIG } from '@/lib/config/businessConfig';
+import { calculateProductDiscount } from '@/lib/pricing/discountService';
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
@@ -212,29 +213,37 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
                 )}
               </div>
 
-              {/* Pricing Box */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-2">
-                <div className="flex flex-wrap items-baseline gap-3">
-                  <span className="text-2xl sm:text-3xl font-black text-slate-950">
-                    ₹{product.demoPriceINR.toLocaleString('en-IN')}
-                  </span>
-                  <span className="text-sm sm:text-base text-slate-400 line-through">
-                    ₹{product.mrpINR.toLocaleString('en-IN')}
-                  </span>
-                  <span className="text-xs text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full font-bold border border-emerald-200">
-                    Incl. Applicable GST
-                  </span>
-                  {discountPercent > 0 && (
-                    <span className="text-xs text-blue-800 bg-blue-50 px-2 py-0.5 rounded-full font-bold border border-blue-200">
-                      Save ₹{discountAmount.toLocaleString('en-IN')} ({discountPercent}% OFF)
-                    </span>
-                  )}
-                </div>
+              {/* Pricing Box with Centralized 10% Diwali Discount */}
+              {(() => {
+                const diwali = calculateProductDiscount(product.demoPriceINR, true);
+                return (
+                  <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/50 border border-amber-200/90 space-y-2">
+                    <div className="flex flex-wrap items-baseline gap-3">
+                      <span className="text-2xl sm:text-3xl font-black text-slate-950">
+                        ₹{diwali.finalPayableINR.toLocaleString('en-IN')}
+                      </span>
+                      <span className="text-sm sm:text-base text-slate-400 line-through">
+                        ₹{product.demoPriceINR.toLocaleString('en-IN')}
+                      </span>
+                      <span className="text-xs text-amber-900 bg-amber-200/90 px-2.5 py-0.5 rounded-full font-bold border border-amber-300">
+                        Diwali Sale 10% OFF
+                      </span>
+                      <span className="text-xs text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full font-bold border border-emerald-200">
+                        Incl. Applicable GST
+                      </span>
+                    </div>
 
-                <p className="text-[11px] text-slate-500 leading-relaxed">
-                  Price inclusive of estimated applicable Goods and Services Tax. Official tax invoices with confirmed statutory HSN classification and tax rate will be finalized upon commercial order verification.
-                </p>
-              </div>
+                    <div className="text-xs text-emerald-700 font-semibold flex items-center gap-1.5">
+                      <span>🎉</span>
+                      <span>Diwali Festive Offer saves ₹{diwali.discountAmountINR.toLocaleString('en-IN')} on this order</span>
+                    </div>
+
+                    <p className="text-[11px] text-slate-500 leading-relaxed pt-1 border-t border-amber-100">
+                      Standard MRP: ₹{product.mrpINR.toLocaleString('en-IN')}. Price inclusive of Goods and Services Tax. Full statutory GST tax invoice generated upon order confirmation.
+                    </p>
+                  </div>
+                );
+              })()}
 
               {/* Add to Cart, Buy Now, and Quantity Controls */}
               <ProductAddToCartSection product={product} />
@@ -243,10 +252,10 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1.5">
                 <div className="flex items-center gap-2 font-bold text-slate-900">
                   <span aria-hidden="true">🚚</span>
-                  <span>Regional Delivery &amp; Serviceability Notice</span>
+                  <span>Regional Delivery &amp; Dispatch Coordination</span>
                 </div>
                 <p className="text-slate-600 text-[11px] leading-relaxed">
-                  Fast local commercial dispatch from our Bikaner distribution center. Statewide road freight across Rajasthan districts is coordinated via verified third-party express logistics.
+                  Fast local dispatch from our Bikaner distribution center across all Rajasthan districts. Please contact JK Enterprises at <a href="tel:+919928769266" className="font-bold underline text-blue-700">9928769266</a> to confirm delivery address, item availability, and delivery timing.
                 </p>
                 <p className="text-[10px] text-slate-400">
                   * Note: Delivery timelines, freight charges, and free-delivery thresholds are preliminary estimates subject to commercial verification prior to dispatch.

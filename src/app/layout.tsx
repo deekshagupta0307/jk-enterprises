@@ -6,6 +6,7 @@ import { JaiShreeShyamTicker } from '@/components/ui/JaiShreeShyamTicker';
 import { ChatWidget } from '@/components/assistant/ChatWidget';
 import { CartProvider } from '@/context/CartContext';
 import { CartDrawer } from '@/components/cart/CartDrawer';
+import { DiwaliSalePopup } from '@/components/promotions/DiwaliSalePopup';
 import { BUSINESS_CONFIG } from '@/lib/config/businessConfig';
 
 const siteUrl = process.env.BETTER_AUTH_URL || 'https://jkenterprises-rajasthan.in';
@@ -97,6 +98,7 @@ export default function RootLayout({
           <Footer />
           <ChatWidget />
           <CartDrawer />
+          <DiwaliSalePopup />
         </CartProvider>
       </body>
     </html>

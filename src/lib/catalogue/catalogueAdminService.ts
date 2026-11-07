@@ -6,6 +6,9 @@ import {
   IMPORTED_SUBCATEGORIES,
   IMPORTED_BRANDS,
 } from '@/data/importedCatalogueData';
+import {
+  STAGED_PRODUCTS,
+} from '@/data/stagedCatalogueData';
 import { SEED_PRODUCTS, SEED_CATEGORIES, SEED_BRANDS } from '../../../prisma/seedData';
 
 export interface AdminProductItem {
@@ -106,7 +109,7 @@ const inMemoryAdminStore: Map<string, AdminProductItem> = new Map();
 function initializeInMemoryStore(): void {
   if (inMemoryAdminStore.size > 0) return;
 
-  // Add imported expanded products
+  // Add imported expanded products (227 original)
   IMPORTED_PRODUCTS.forEach((p, idx) => {
     const id = `imp-${idx + 1}-${p.sku.toLowerCase()}`;
     const missing: string[] = [];
@@ -123,6 +126,41 @@ function initializeInMemoryStore(): void {
       description: p.description,
       modelNumber: p.modelNumber,
       brand: p.brand,
+      category: p.categoryName,
+      categorySlug: p.categorySlug,
+      mrpINR: p.mrpINR,
+      sourcePriceINR: p.sourcePriceINR,
+      confirmedPriceINR: null,
+      isPriceConfirmed: false,
+      warrantyInfo: p.warrantyInfo,
+      isWarrantyConfirmed: false,
+      publicationStatus: 'DRAFT',
+      isDemo: false,
+      specifications: p.specifications.map((s) => ({ key: s.key, value: s.value, group: s.group })),
+      images: p.images.map((img) => ({ imageUrl: img.imageUrl, altText: img.altText, isPrimary: img.isPrimary })),
+      sourceUrl: p.sourceUrl,
+      sourceRetrievalDate: p.sourceRetrievalDate,
+      missingFields: missing,
+    });
+  });
+
+  // Add Phase 2 staged products (36 new DRAFT candidates)
+  STAGED_PRODUCTS.forEach((p, idx) => {
+    const id = `stg-${idx + 1}-${p.sku.toLowerCase()}`;
+    const missing: string[] = [];
+    if (!p.sourcePriceINR && !p.mrpINR) missing.push('Price');
+    if (!p.specifications || p.specifications.length === 0) missing.push('Specifications');
+    if (!p.images || p.images.length === 0) missing.push('Images');
+    if (!p.modelNumber || p.modelNumber === 'N/A') missing.push('Model Number');
+
+    inMemoryAdminStore.set(id, {
+      id,
+      sku: p.sku,
+      slug: p.slug,
+      name: p.name,
+      description: p.description,
+      modelNumber: p.modelNumber,
+      brand: p.brand as string,
       category: p.categoryName,
       categorySlug: p.categorySlug,
       mrpINR: p.mrpINR,

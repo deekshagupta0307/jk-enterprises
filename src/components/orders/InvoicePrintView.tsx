@@ -302,6 +302,21 @@ export const InvoicePrintView: React.FC<InvoicePrintViewProps> = ({ order }) => 
           </div>
 
           <div className="space-y-2 text-xs">
+            {order.financials?.discountAmountINR && order.financials.discountAmountINR > 0 ? (
+              <>
+                <div className="flex justify-between text-slate-600">
+                  <span>Gross Items Subtotal</span>
+                  <span className="font-mono">
+                    ₹{(order.financials.originalSubtotalINR || order.subtotalINR).toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <div className="flex justify-between text-emerald-800 font-bold">
+                  <span>{order.financials.discountOfferLabel || 'Diwali Festive Sale (10% OFF)'}</span>
+                  <span className="font-mono">-₹{order.financials.discountAmountINR.toLocaleString('en-IN')}</span>
+                </div>
+              </>
+            ) : null}
+
             <div className="flex justify-between text-slate-600">
               <span>Taxable Value (Base)</span>
               <span className="font-mono">₹{order.financials.taxableSubtotalINR.toLocaleString('en-IN')}</span>
@@ -347,6 +362,7 @@ export const InvoicePrintView: React.FC<InvoicePrintViewProps> = ({ order }) => 
           <p>1. Goods once dispatched are covered under respective manufacturer warranty terms across authorized service centers.</p>
           <p>2. Payment must be cleared prior to dispatch via verified manual UPI / NEFT transfer.</p>
           <p>3. Tax values and HSN classifications are provisional commercial estimates. Final statutory GST liability and verified tariff codes will be determined upon dispatch by JK Enterprises, Bikaner, Rajasthan.</p>
+          <p className="text-blue-900 font-semibold pt-1">4. Delivery Dispatch &amp; Address Coordination: Please contact JK Enterprises at <a href="tel:+919928769266" className="underline font-bold">9928769266</a> to confirm delivery address, item availability, and delivery timing.</p>
           <p className="pt-2 text-right font-semibold text-slate-700">For JK Enterprises — Authorized Signatory</p>
         </div>
       </div>

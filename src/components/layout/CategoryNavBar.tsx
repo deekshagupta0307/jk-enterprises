@@ -22,6 +22,10 @@ const CATEGORY_NAV_ITEMS: CategoryNavItem[] = [
   { id: 'cat-security', name: 'CCTV & Security', shortName: 'CCTV & Security', slug: 'cctv-security' },
   { id: 'cat-printers', name: 'Printers & Toners', shortName: 'Printers & Supplies', slug: 'printers' },
   { id: 'cat-peripherals', name: 'Monitors & Peripherals', shortName: 'Displays & Peripherals', slug: 'peripherals' },
+  { id: 'cat-military-outdoor', name: 'Military & Outdoor Products', shortName: 'Military & Outdoor', slug: 'military-outdoor' },
+  { id: 'cat-cables-connectivity', name: 'Cables & Connectivity', shortName: 'Cables & Adapters', slug: 'cables-connectivity' },
+  { id: 'cat-stationery-office', name: 'Stationery & Office Supplies', shortName: 'Stationery & Office', slug: 'stationery-office' },
+  { id: 'cat-furnishing-carpets', name: 'Commercial Furnishing & Carpets', shortName: 'Furnishings & Carpets', slug: 'furnishing-carpets' },
 ];
 
 export const CategoryNavBar: React.FC = () => {

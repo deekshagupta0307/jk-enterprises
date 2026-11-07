@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { useCart } from '@/context/CartContext';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
+import { calculateProductDiscount } from '@/lib/pricing/discountService';
 
 export interface ProductCardProps {
   product: ProductDemo;
@@ -107,17 +108,28 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
         {/* Pricing, Tax Status & Warranty */}
         <div className="mt-3.5 pt-3 border-t border-slate-100">
-          <div className="flex items-baseline gap-2">
-            <span className="text-base sm:text-lg font-extrabold text-slate-950">
-              ₹{product.demoPriceINR.toLocaleString('en-IN')}
-            </span>
-            <span className="text-xs text-slate-400 line-through">
-              ₹{product.mrpINR.toLocaleString('en-IN')}
-            </span>
-            <span className="text-[10px] text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded font-semibold border border-emerald-200/80">
-              Incl. GST
-            </span>
-          </div>
+          {(() => {
+            const discount = calculateProductDiscount(product.demoPriceINR, true);
+            return (
+              <>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-base sm:text-lg font-extrabold text-slate-950">
+                    ₹{discount.finalPayableINR.toLocaleString('en-IN')}
+                  </span>
+                  <span className="text-xs text-slate-400 line-through">
+                    ₹{product.demoPriceINR.toLocaleString('en-IN')}
+                  </span>
+                  <span className="text-[10px] text-amber-900 bg-amber-100/90 px-1.5 py-0.5 rounded font-bold border border-amber-300">
+                    Diwali 10% OFF
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-400 flex items-center justify-between mt-0.5">
+                  <span>MRP ₹{product.mrpINR.toLocaleString('en-IN')} • Incl. GST</span>
+                  <span className="text-emerald-700 font-semibold text-[10px]">Save ₹{discount.discountAmountINR.toLocaleString('en-IN')}</span>
+                </div>
+              </>
+            );
+          })()}
 
           <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
             <span className="inline-flex items-center gap-1 text-blue-700 font-medium">

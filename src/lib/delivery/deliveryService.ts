@@ -7,6 +7,10 @@ import {
   validateIndianMobile,
   validateWhatsAppNumber,
 } from '@/lib/validation/phoneValidation';
+import {
+  calculateOrderDiscountSnapshot,
+  DIWALI_OFFER_CONFIG,
+} from '@/lib/pricing/discountService';
 
 export interface ShippingAddressInput {
   customerName: string;
@@ -33,6 +37,11 @@ export interface DeliveryValidationResult {
 
 export interface CalculatedOrderBreakdown {
   subtotalINR: number;
+  originalSubtotalINR: number;
+  discountAmountINR: number;
+  discountRatePercent: number;
+  discountOfferLabel: string | null;
+  offerCode: string | null;
   deliveryFeeINR: number;
   taxableSubtotalINR: number;
   cgstINR: number;
@@ -167,6 +176,7 @@ export function validateShippingAddress(
 
 /**
  * Calculates complete order financials (subtotal, shipping, GST breakdown, grand total).
+ * Supports centralized 10% Diwali customer discount when offerCode is applied.
  * Tax rate: 18% standard for computer hardware & IT peripherals.
  * Intra-state Rajasthan billing: CGST 9% + SGST 9%.
  * Inter-state billing: IGST 18%.
@@ -174,9 +184,26 @@ export function validateShippingAddress(
 export function calculateOrderBreakdown(
   subtotalINR: number,
   state: string = 'Rajasthan',
-  district: string = 'Bikaner'
+  district: string = 'Bikaner',
+  offerCode?: string | null
 ): CalculatedOrderBreakdown {
-  const safeSubtotal = Math.max(0, Math.round(subtotalINR * 100) / 100);
+  const safeOriginal = Math.max(0, Math.round(subtotalINR * 100) / 100);
+
+  // Apply centralized discount if offerCode is active
+  const isDiwaliOffer = offerCode === DIWALI_OFFER_CONFIG.offerCode;
+  const discountSnapshot = isDiwaliOffer
+    ? calculateOrderDiscountSnapshot(safeOriginal)
+    : {
+        originalSubtotalINR: safeOriginal,
+        discountRatePercent: 0,
+        discountAmountINR: 0,
+        discountedSubtotalINR: safeOriginal,
+        offerCode: null,
+        offerLabel: null,
+        isOfferApplied: false,
+      };
+
+  const safeSubtotal = discountSnapshot.discountedSubtotalINR;
 
   const isBikanerLocal = district.toLowerCase() === 'bikaner' && state.toLowerCase() === 'rajasthan';
   const isRajasthan =
@@ -217,6 +244,11 @@ export function calculateOrderBreakdown(
 
   return {
     subtotalINR: safeSubtotal,
+    originalSubtotalINR: safeOriginal,
+    discountAmountINR: discountSnapshot.discountAmountINR,
+    discountRatePercent: discountSnapshot.discountRatePercent,
+    discountOfferLabel: discountSnapshot.offerLabel,
+    offerCode: discountSnapshot.offerCode,
     deliveryFeeINR,
     taxableSubtotalINR,
     cgstINR,

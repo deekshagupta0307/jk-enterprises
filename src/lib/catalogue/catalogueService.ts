@@ -11,6 +11,10 @@ import {
   IMPORTED_PARENT_CATEGORIES,
   IMPORTED_SUBCATEGORIES,
 } from '@/data/importedCatalogueData';
+import {
+  STAGED_PARENT_CATEGORIES,
+  STAGED_SUBCATEGORIES,
+} from '@/data/stagedCatalogueData';
 
 export interface CatalogueFilterParams {
   category?: string;
@@ -360,7 +364,7 @@ export async function getCatalogueProducts(
   const combinedCategories: DemoSeedCategory[] = [...SEED_CATEGORIES];
   const existingCatSlugs = new Set(SEED_CATEGORIES.map((c) => c.slug));
 
-  for (const parent of IMPORTED_PARENT_CATEGORIES) {
+  for (const parent of [...IMPORTED_PARENT_CATEGORIES, ...STAGED_PARENT_CATEGORIES]) {
     if (!existingCatSlugs.has(parent.slug)) {
       existingCatSlugs.add(parent.slug);
       combinedCategories.push({
@@ -373,7 +377,7 @@ export async function getCatalogueProducts(
     }
   }
 
-  for (const sub of IMPORTED_SUBCATEGORIES) {
+  for (const sub of [...IMPORTED_SUBCATEGORIES, ...STAGED_SUBCATEGORIES]) {
     if (!existingCatSlugs.has(sub.slug)) {
       existingCatSlugs.add(sub.slug);
       combinedCategories.push({

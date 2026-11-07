@@ -28,6 +28,7 @@ export interface PlaceOrderInput {
   paymentMethod: 'MANUAL_UPI_QR' | 'MANUAL_BANK_TRANSFER';
   paymentReferenceUTR?: string;
   notes?: string;
+  offerCode?: string;
 }
 
 export interface OrderItemView {
@@ -68,6 +69,11 @@ export interface OrderView {
   verifiedByUserId?: string | null;
   verificationNotes?: string | null;
   subtotalINR: number;
+  originalSubtotalINR?: number;
+  discountAmountINR?: number;
+  discountRatePercent?: number;
+  discountOfferLabel?: string | null;
+  offerCode?: string | null;
   deliveryFeeINR: number;
   taxINR: number;
   totalAmountINR: number;
@@ -241,8 +247,8 @@ export async function placeCustomerOrder(
 
   const shipping = validation.sanitizedInput;
 
-  // 3. Recalculate complete server-side financials
-  const financials = calculateOrderBreakdown(rawSubtotal, shipping.state, shipping.district);
+  // 3. Recalculate complete server-side financials (supporting centralized Diwali discount)
+  const financials = calculateOrderBreakdown(rawSubtotal, shipping.state, shipping.district, input.offerCode);
 
   // Guard: In production, durable database persistence is mandatory.
   if (process.env.NODE_ENV === 'production' && !isDatabaseConfigured()) {
@@ -359,6 +365,11 @@ export async function placeCustomerOrder(
         paymentReferenceUTR: dbOrder.paymentReferenceUTR,
         paymentNotes: dbOrder.paymentNotes,
         subtotalINR: Number(dbOrder.subtotalINR),
+        originalSubtotalINR: financials.originalSubtotalINR,
+        discountAmountINR: financials.discountAmountINR,
+        discountRatePercent: financials.discountRatePercent,
+        discountOfferLabel: financials.discountOfferLabel,
+        offerCode: financials.offerCode,
         deliveryFeeINR: Number(dbOrder.deliveryFeeINR),
         taxINR: Number(dbOrder.taxINR),
         totalAmountINR: Number(dbOrder.totalAmountINR),
@@ -429,6 +440,11 @@ export async function placeCustomerOrder(
     paymentReferenceUTR: utrTrimmed || null,
     paymentNotes: (input.notes || '').trim().slice(0, 500) || null,
     subtotalINR: financials.subtotalINR,
+    originalSubtotalINR: financials.originalSubtotalINR,
+    discountAmountINR: financials.discountAmountINR,
+    discountRatePercent: financials.discountRatePercent,
+    discountOfferLabel: financials.discountOfferLabel,
+    offerCode: financials.offerCode,
     deliveryFeeINR: financials.deliveryFeeINR,
     taxINR: financials.totalTaxINR,
     totalAmountINR: financials.totalINR,

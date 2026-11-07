@@ -550,9 +550,24 @@ export const OrderConfirmationView: React.FC<OrderConfirmationViewProps> = ({
             {order.customerWhatsapp && (
               <p className="text-emerald-700 font-medium">WhatsApp: {order.customerWhatsapp.startsWith('+') ? order.customerWhatsapp : `+91 ${order.customerWhatsapp}`}</p>
             )}
+            <div className="pt-2 mt-2 border-t border-slate-200 text-[11px] text-blue-900 font-medium">
+              🚚 <strong>Dispatch Coordination:</strong> Please contact JK Enterprises at <a href="tel:+919928769266" className="font-bold underline text-blue-800">9928769266</a> to confirm delivery address, item availability, and delivery timing.
+            </div>
           </div>
 
           <div className="space-y-2 text-xs">
+            {order.financials?.discountAmountINR && order.financials.discountAmountINR > 0 ? (
+              <>
+                <div className="flex justify-between text-slate-600">
+                  <span>Gross Items Subtotal</span>
+                  <span className="font-mono">₹{(order.financials.originalSubtotalINR || order.subtotalINR).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between text-amber-900 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 font-bold">
+                  <span>{order.financials.discountOfferLabel || 'Diwali Festive Sale (10% OFF)'}</span>
+                  <span className="font-mono">-₹{order.financials.discountAmountINR.toLocaleString('en-IN')}</span>
+                </div>
+              </>
+            ) : null}
             <div className="flex justify-between text-slate-600">
               <span>Taxable Subtotal (Base)</span>
               <span className="font-mono">₹{order.financials.taxableSubtotalINR.toLocaleString('en-IN')}</span>

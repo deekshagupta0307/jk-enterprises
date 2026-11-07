@@ -65,6 +65,38 @@ export const DEMO_CATEGORIES: ProductCategory[] = [
     itemCountDemo: 30,
     iconName: 'monitor',
   },
+  {
+    id: 'cat-military-outdoor',
+    name: 'Military & Outdoor Products',
+    slug: 'military-outdoor',
+    description: 'Civilian tactical backpacks, trekking rucksacks, rugged footwear, and all-weather gear.',
+    itemCountDemo: 28,
+    iconName: 'military-outdoor',
+  },
+  {
+    id: 'cat-cables-connectivity',
+    name: 'Cables & Connectivity',
+    slug: 'cables-connectivity',
+    description: 'HDMI 2.1, DisplayPort, Cat6 patch cords, Type-C multiport hubs, and active converters.',
+    itemCountDemo: 24,
+    iconName: 'cables-connectivity',
+  },
+  {
+    id: 'cat-stationery-office',
+    name: 'Stationery & Office Supplies',
+    slug: 'stationery-office',
+    description: 'Institutional registers, copier paper reams, executive files, and desk accessories.',
+    itemCountDemo: 35,
+    iconName: 'stationery-office',
+  },
+  {
+    id: 'cat-furnishing-carpets',
+    name: 'Commercial Furnishing & Carpets',
+    slug: 'furnishing-carpets',
+    description: 'Executive ergonomic chairs, institutional tables, conference seating, and commercial carpets.',
+    itemCountDemo: 18,
+    iconName: 'furnishing-carpets',
+  },
 ];
 
 export const DEMO_FEATURED_PRODUCTS: ProductDemo[] = [

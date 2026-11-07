@@ -213,6 +213,65 @@ export const CategoryIcon: React.FC<CategoryIconProps> = ({ slug, className = 'w
           <circle cx="17" cy="12" r="1" fill="currentColor" />
         </svg>
       );
+    case 'military-outdoor':
+    case 'tactical-bags-backpacks':
+    case 'outdoor-boots-footwear':
+    case 'tactical-apparel':
+    case 'camping-survival-gear':
+    case 'military-accessories-gear':
+      // Tactical / Mountain / Compass / Field Gear
+      return (
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 19L12 5L20 19H4Z" />
+          <path d="M9 19L12 13L15 19" />
+          <circle cx="12" cy="10" r="1" fill="currentColor" />
+        </svg>
+      );
+
+    case 'cables-connectivity':
+    case 'cables':
+    case 'connectivity':
+    case 'adapters-converters':
+      // Cables / Video / Plugs / Connectors
+      return (
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 6h4a2 2 0 0 1 2 2v8a2 2 0 0 0 2 2h4" />
+          <path d="M2 4v4m0-2h2M22 16v4m0-2h-2" />
+          <rect x="18" y="15" width="4" height="6" rx="1" />
+          <rect x="2" y="3" width="4" height="6" rx="1" />
+        </svg>
+      );
+
+    case 'stationery-office':
+    case 'office-supplies':
+    case 'office-stationery-paper':
+    case 'files-folders-storage':
+      // Stationery Dossier / Notepad / Pen
+      return (
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+          <polyline points="10 9 9 9 8 9" />
+        </svg>
+      );
+
+    case 'furnishing-carpets':
+    case 'commercial-carpets-rugs':
+    case 'office-furniture-seating':
+    case 'carpets':
+    case 'office-furnishings':
+      // Commercial Seating / Armchair / Carpets
+      return (
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 19v2m12-2v2" />
+          <path d="M4 11a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-6z" />
+          <path d="M6 9V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v3" />
+          <line x1="4" y1="15" x2="20" y2="15" />
+        </svg>
+      );
+
     case 'peripherals':
     case 'computer-peripherals':
     case 'laptop-accessories':

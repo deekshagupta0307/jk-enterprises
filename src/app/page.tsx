@@ -148,7 +148,7 @@ export default function HomePage() {
                   <Badge variant="primary" size="sm">
                     Product Categories
                   </Badge>
-                  <span className="text-xs text-slate-500 font-medium">8 Commercial Product Lines</span>
+                  <span className="text-xs text-slate-500 font-medium">12 Commercial &amp; Institutional Lines</span>
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-950 tracking-tight">
                   Explore Products by Category

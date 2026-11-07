@@ -5,6 +5,18 @@ import {
   IMPORTED_BRANDS,
   IMPORTED_PRODUCTS,
 } from '@/data/importedCatalogueData';
+import {
+  STAGED_PARENT_CATEGORIES,
+  STAGED_SUBCATEGORIES,
+  STAGED_BRANDS,
+  STAGED_PRODUCTS,
+} from '@/data/stagedCatalogueData';
+
+// Authoritative combined onboarding dataset (227 original imported + 36 Phase 2 staged)
+export const ALL_ONBOARDING_PRODUCTS = [...IMPORTED_PRODUCTS, ...STAGED_PRODUCTS];
+export const ALL_ONBOARDING_PARENT_CATEGORIES = [...IMPORTED_PARENT_CATEGORIES, ...STAGED_PARENT_CATEGORIES];
+export const ALL_ONBOARDING_SUBCATEGORIES = [...IMPORTED_SUBCATEGORIES, ...STAGED_SUBCATEGORIES];
+export const ALL_ONBOARDING_BRANDS = [...IMPORTED_BRANDS, ...STAGED_BRANDS];
 
 export interface ImportOptions {
   dryRun?: boolean;
@@ -74,20 +86,20 @@ export async function importCatalogue(options: ImportOptions = {}): Promise<Impo
     isDryRun,
     isDatabaseConnected: false,
     categories: {
-      parentCategories: IMPORTED_PARENT_CATEGORIES.length,
-      subcategories: IMPORTED_SUBCATEGORIES.length,
+      parentCategories: ALL_ONBOARDING_PARENT_CATEGORIES.length,
+      subcategories: ALL_ONBOARDING_SUBCATEGORIES.length,
       reused: 0,
       wouldCreate: 0,
       created: 0,
     },
     brands: {
-      total: IMPORTED_BRANDS.length,
+      total: ALL_ONBOARDING_BRANDS.length,
       reused: 0,
       wouldCreate: 0,
       created: 0,
     },
     products: {
-      totalEvaluated: IMPORTED_PRODUCTS.length,
+      totalEvaluated: ALL_ONBOARDING_PRODUCTS.length,
       wouldCreate: 0,
       wouldUpdate: 0,
       created: 0,
@@ -116,7 +128,7 @@ export async function importCatalogue(options: ImportOptions = {}): Promise<Impo
   };
 
   // 1. Calculate static completeness metrics from source dataset
-  for (const p of IMPORTED_PRODUCTS) {
+  for (const p of ALL_ONBOARDING_PRODUCTS) {
     report.brandBreakdown[p.brand] = (report.brandBreakdown[p.brand] || 0) + 1;
     report.categoryBreakdown[p.categorySlug] = (report.categoryBreakdown[p.categorySlug] || 0) + 1;
 
@@ -148,7 +160,7 @@ export async function importCatalogue(options: ImportOptions = {}): Promise<Impo
     const seenSkus = new Set<string>();
     const seenSlugs = new Set<string>();
 
-    for (const p of IMPORTED_PRODUCTS) {
+    for (const p of ALL_ONBOARDING_PRODUCTS) {
       if (seenSkus.has(p.sku)) {
         report.errors.push(`Duplicate SKU detected: ${p.sku}`);
       }
@@ -168,7 +180,7 @@ export async function importCatalogue(options: ImportOptions = {}): Promise<Impo
     // A. Parent Categories
     const categoryMap = new Map<string, string>(); // slug -> id
 
-    for (const parent of IMPORTED_PARENT_CATEGORIES) {
+    for (const parent of ALL_ONBOARDING_PARENT_CATEGORIES) {
       const existing = await prisma.category.findFirst({
         where: { slug: { equals: parent.slug, mode: 'insensitive' } },
       });
@@ -206,7 +218,7 @@ export async function importCatalogue(options: ImportOptions = {}): Promise<Impo
     }
 
     // B. Subcategories
-    for (const sub of IMPORTED_SUBCATEGORIES) {
+    for (const sub of ALL_ONBOARDING_SUBCATEGORIES) {
       const parentId = sub.parentSlug ? categoryMap.get(sub.parentSlug) : undefined;
       const existing = await prisma.category.findFirst({
         where: { slug: { equals: sub.slug, mode: 'insensitive' } },
@@ -248,7 +260,7 @@ export async function importCatalogue(options: ImportOptions = {}): Promise<Impo
     // C. Brands
     const brandMap = new Map<string, string>(); // slug -> id
 
-    for (const brand of IMPORTED_BRANDS) {
+    for (const brand of ALL_ONBOARDING_BRANDS) {
       const existing = await prisma.brand.findFirst({
         where: { slug: { equals: brand.slug, mode: 'insensitive' } },
       });
@@ -275,7 +287,7 @@ export async function importCatalogue(options: ImportOptions = {}): Promise<Impo
     }
 
     // D. Products
-    for (const prod of IMPORTED_PRODUCTS) {
+    for (const prod of ALL_ONBOARDING_PRODUCTS) {
       try {
         const brandId = brandMap.get(prod.brand.toLowerCase());
         const categoryId = categoryMap.get(prod.categorySlug);

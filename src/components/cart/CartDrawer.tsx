@@ -4,6 +4,7 @@ import React, { useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/Button';
+import { calculateOrderDiscountSnapshot } from '@/lib/pricing/discountService';
 
 export const CartDrawer: React.FC = () => {
   const { items, totalItems, subtotalINR, isCartOpen, closeCart, updateQuantity, removeItem, clearCart } = useCart();
@@ -163,22 +164,33 @@ export const CartDrawer: React.FC = () => {
           {items.length > 0 && (
             <div className="p-4 sm:p-5 border-t border-slate-200 bg-white space-y-3">
               <div className="space-y-1.5 text-xs">
-                <div className="flex justify-between text-slate-600">
-                  <span>Subtotal</span>
-                  <span className="font-bold text-slate-900">₹{subtotalINR.toLocaleString('en-IN')}</span>
-                </div>
-                <div className="flex justify-between text-slate-500 text-[11px]">
-                  <span>Delivery Estimate</span>
-                  <span className="text-emerald-700 font-medium">Calculated at Checkout (Bikaner Hub)</span>
-                </div>
-                <div className="flex justify-between text-slate-400 text-[10px] pb-1 border-b border-slate-100">
-                  <span>GST / Commercial Taxes</span>
-                  <span>Included in prices</span>
-                </div>
-                <div className="flex justify-between text-sm font-extrabold text-slate-950 pt-1">
-                  <span>Estimated Total</span>
-                  <span className="text-blue-900">₹{subtotalINR.toLocaleString('en-IN')}</span>
-                </div>
+                {(() => {
+                  const discount = calculateOrderDiscountSnapshot(subtotalINR);
+                  return (
+                    <>
+                      <div className="flex justify-between text-slate-600">
+                        <span>Items Subtotal</span>
+                        <span className="font-semibold text-slate-900">₹{subtotalINR.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="flex justify-between text-amber-800 font-bold bg-amber-50/80 px-2 py-1 rounded-md border border-amber-200">
+                        <span>Diwali Sale (10% OFF)</span>
+                        <span>-₹{discount.discountAmountINR.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="flex justify-between text-slate-500 text-[11px]">
+                        <span>Delivery Estimate</span>
+                        <span className="text-emerald-700 font-medium">Calculated at Checkout (Bikaner Hub)</span>
+                      </div>
+                      <div className="flex justify-between text-slate-400 text-[10px] pb-1 border-b border-slate-100">
+                        <span>GST / Commercial Taxes</span>
+                        <span>Included in prices</span>
+                      </div>
+                      <div className="flex justify-between text-sm font-extrabold text-slate-950 pt-1">
+                        <span>Payable Subtotal</span>
+                        <span className="text-blue-900">₹{discount.discountedSubtotalINR.toLocaleString('en-IN')}</span>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
 
               <div className="p-2.5 bg-blue-50/80 rounded-xl border border-blue-100 text-[11px] text-blue-900 flex items-start gap-2">
